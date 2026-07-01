@@ -5,24 +5,24 @@
 [![status](https://img.shields.io/badge/status-PoC-orange)](#status)
 [![routing](https://img.shields.io/badge/routing-fail--closed-0a7f42)](#fail-closed-contract)
 
-A small, readable proof-of-concept for a **fusion router** that fans out a prompt to multiple LLM adapters, validates their outputs with **Zod**, and asks a stronger model (for example **GPT-5.5**) to produce the final consensus.
+A small, readable proof-of-concept for a **fusion router** that fans out a prompt to multiple **CLI / wrapper-backed LLM adapters**, validates their outputs with **Zod**, and asks a stronger model (here **Codex / GPT-5.5**) to produce the final consensus.
 
 ## Status
 
-> **PoC only.** This repository is intentionally lightweight and readable.
-> For production use, you still need to implement real provider API adapters (or wrapper clients), authentication flows, retries, quotas, cost controls, and persistent telemetry sinks.
+> **PoC, but no longer mock-only.** This repository now ships real process-backed adapters for Codex CLI, Claude Code, Gemini CLI, Grok CLI, Devin CLI, Cline, and a repo-local `bin/zcode-headless` wrapper lane for GLM.
+> Live success still depends on each host having the right CLI installed and authenticated.
 
 ## Architecture at a glance
 
-> Conceptual diagram for the current **mock-adapter PoC**. The repository does not yet ship real provider API clients.
+> Conceptual diagram for the current **process-backed PoC**. The repository favors local CLIs / wrappers over direct provider SDK calls.
 
 ```mermaid
 flowchart TD
     U[Prompt] --> R[FusionRouter]
 
-    R --> A1[Adapter: direct API]
-    R --> A2[Adapter: OAuth wrapper]
-    R --> A3[Adapter: additional providers]
+    R --> A1[Adapter: CLI / process]
+    R --> A2[Adapter: zcode wrapper]
+    R --> A3[Adapter: additional CLI providers]
 
     A1 --> V[Router-side Zod validation]
     A2 --> V
@@ -38,40 +38,39 @@ flowchart TD
 
 ## What this PoC demonstrates
 
-- Parallel fan-out across multiple model adapters
+- Parallel fan-out across multiple CLI / wrapper adapters
 - Zod validation at both the **adapter output** layer and the **final consensus** layer
 - **Fail-closed** routing boundaries
   - invalid adapter outputs are rejected
   - insufficient validated responses abort consensus
   - invalid synthesis output aborts the request with a structured error
+- real process-backed adapter execution through installed CLIs / wrappers
+- auth/session readiness checks plus optional refresh hooks per adapter
+- retry policy with backoff for transient failures / rate limiting
+- estimated spend budget guardrails per lane
+- per-adapter circuit breaking after repeated failures
 - bounded adapter execution, even if an adapter ignores `AbortSignal`
-- **Co-failure telemetry** capture so correlated provider failures can be logged/observed
+- **Co-failure telemetry** capture with an OTLP/HTTP log sink option
 - Support for describing multiple adapter surfaces:
-  - direct provider API integrations
+  - CLI/process-backed adapters
   - OAuth-backed wrapper lanes where a provider-specific bridge actually makes sense
-  - custom/session-backed adapters for tool-specific surfaces such as Codex CLI, Claude Code, Devin, and Cline
+  - session-backed tool surfaces such as Codex CLI, Claude Code, Devin, and Cline
 
 ## Included surfaces in the PoC
 
-The demo configuration includes examples for these adapter shapes:
+The default router wires real process-backed adapters for these surfaces:
 
-> In the current PoC, `authMode` and `transport` are descriptive metadata for the demo configuration. They document intended integration shape; they do not yet implement full auth/session behavior by themselves.
+| Surface | Example auth | Example transport | Current command |
+|---|---|---|---|
+| OpenAI (Codex CLI) | session-backed | `processAdapter` | `codex exec` |
+| Anthropic (Claude Code) | session-backed | `processAdapter` | `claude -p` |
+| Google (Gemini CLI) | API key | `processAdapter` | `gemini -p` |
+| GLM | OAuth | `zcodeWrapper` | `bin/zcode-headless --mode plan --prompt ...` |
+| xAI (Grok CLI) | session-backed | `processAdapter` | `grok -p` |
+| Cognition (Devin) | session-backed | `processAdapter` | `devin -p` |
+| Cline | session-backed | `processAdapter` | `cline --json` |
 
-| Surface | Example auth | Example transport |
-|---|---|---|
-| OpenAI | API key | direct API |
-| Anthropic (Claude Sonnet) | API key | direct API |
-| DeepSeek | API key | direct API |
-| GLM | OAuth | `zcodeWrapper` |
-| xAI (Grok) | API key | direct API |
-| Google (Gemini) | API key | direct API |
-| Anthropic (Claude Opus) | API key | direct API |
-| Cognition (Devin) | session-backed | `customAdapter` |
-| Codex CLI | session-backed | `customAdapter` |
-| Claude Code | session-backed | `customAdapter` |
-| Cline | session-backed | `customAdapter` |
-
-These are **architecture placeholders** in this repo's current form. The shipped code uses mock adapters so the structure stays easy to read. The demo config intentionally separates three different shapes: direct API lanes, a dedicated GLM wrapper lane, and session/process-backed custom adapters. The Cline lane is intentionally marked as a failure case so the demo continues to exercise co-failure telemetry and fail-closed behavior under partial upstream failure.
+`authMode` and `transport` are not just table labels anymore: the router now maps readiness checks, optional refresh hooks, wrapper-specific env/token plumbing, retries, estimated budget guardrails, and circuit-breaking behavior into each process-backed adapter. The GLM lane stays isolated behind `zcodeWrapper` via `bin/zcode-headless`; everything else is modeled as a CLI/process surface instead of pretending to be a direct API.
 
 ## Fail-closed contract
 
@@ -79,20 +78,20 @@ This PoC does **not** silently continue into a fake consensus when the validated
 
 If the router cannot gather enough validated adapter outputs, it throws a structured `RouterError` with status `4401`.
 
-Telemetry is **best effort** in this PoC: telemetry sink failures are logged, but they do not block the main request path.
+Telemetry is still **best effort** on the request path: sink failures are logged, but they do not block the main request. The shipped code includes an OTLP/HTTP log sink so correlated failures can be forwarded to OpenTelemetry-compatible backends.
 
 ## Local run
 
-This repo uses a remote Deno import for Zod, so run it with Deno:
+This repo uses remote Deno imports plus local CLI execution, so run it with:
 
 ```bash
-deno run --allow-net router.ts
+deno run --allow-run --allow-read --allow-write --allow-env --allow-net router.ts
 ```
 
 ## Next production steps
 
-1. Implement real adapters for OpenAI / Anthropic / DeepSeek / xAI / Google / GLM / wrapper clients
-2. Map OAuth session refresh and wrapper-specific token plumbing into each adapter
-3. Send co-failure telemetry to a real sink (OpenTelemetry, Honeycomb, Datadog, etc.)
-4. Add retries, budgets, rate-limit handling, and circuit breaking
-5. Add tests for malformed provider responses, quorum failure, and synthesis validation failure
+1. Install / authenticate the required CLIs on each target host (Claude Code, Gemini CLI, Cline, and `zcode` may still fail if the local session is missing or invalid)
+2. Supply a valid ZCode model config (for example `~/.zcode/cli/config.json`) on hosts that should execute the GLM lane
+3. Persist budget / circuit-breaker state outside process memory
+4. Add CI smoke jobs that exercise each installed CLI lane separately
+5. Add vendor-specific OTLP/Honeycomb/Datadog deployment examples and dashboards
