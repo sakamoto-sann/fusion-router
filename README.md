@@ -204,6 +204,12 @@ manual verification checklist after applying the migration. `.env.example` keeps
 runtime Supabase audit values empty and documents that service-role credentials
 are migration/admin-only, never router runtime config.
 
+Phase 3 starts with design only.
+[`docs/routing-mode-design.md`](docs/routing-mode-design.md) defines the future
+`direct` and `agent_chat` routing modes, the mode-selection precedence,
+safety/fallback rules, and audit/telemetry expectations. The current code still
+has no routing mode switch or agent-chat runtime.
+
 Cancellation is transport-specific:
 
 - CLI / wrapper lanes are bounded by process timeout, `SIGTERM`, and listener /
