@@ -49,14 +49,16 @@ Read the release guide and checklist:
 
 - [`docs/release-v0.1.md`](docs/release-v0.1.md)
 - [`docs/release-checklist-v0.1.md`](docs/release-checklist-v0.1.md)
+- [`docs/release-v0.1.1.md`](docs/release-v0.1.1.md)
+- [`docs/release-checklist-v0.1.1.md`](docs/release-checklist-v0.1.1.md)
 
-v0.1 explicit non-goals:
+v0.1.1 explicit non-goals:
 
-- no production `agent_chat` runtime
+- no production autonomous `agent_chat` runtime
 - no worker spawning or Realtime subscriber
 - no hidden fallback
 - no service-role runtime
-- no production Agent Bus runtime connection
+- no live Supabase Agent Bus runtime client/writes
 - no automatic OAuth/API key setup
 - no networked examples by default
 

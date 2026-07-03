@@ -49,7 +49,7 @@ Unknown profiles fail closed before output is generated.
 `generateFusionRouterConfig(input)` returns deterministic JSON-compatible data.
 It includes:
 
-- `routing.mode`: `direct` or recognized-but-unimplemented `agent_chat`;
+- `routing.mode`: `direct` or experimental AgentRuntime-gated `agent_chat`;
 - `providers`: provider/model/auth/transport/client descriptors;
 - `persistence.mode`: `none`, `localJsonl`, or `supabaseAuditRpc`;
 - `telemetry.mode`: `console`, `otlp`, or `disabled`;
@@ -108,7 +108,7 @@ AgentRuntime config. Doctor reports a warning for selected `agent_chat`; direct
 configs keep AgentRuntime disabled. AgentChat simulator is standalone and
 experimental: it validates protocol roles, limits, transcript redaction, and
 audit milestones without production routing, external tools, or network calls.
-Setup does not enable real agent execution. See
+Setup does not enable production or live agent execution. See
 [`agent-chat-protocol.md`](agent-chat-protocol.md).
 
 ## Doctor integration
@@ -133,6 +133,7 @@ Optional provider absence remains non-fatal. Existing expected notes remain:
 ## Non-goals
 
 This PR does not implement provider account creation, OAuth login, API key
-storage, live credential validation, actual `agent_chat` runtime, local JSONL
-audit storage, Supabase migration/RPC changes, automatic remote health checks,
-hidden fallback behavior, or any change to default direct fan-out behavior.
+storage, live credential validation, production autonomous `agent_chat` runtime,
+local JSONL audit storage, Supabase migration/RPC changes, automatic remote
+health checks, hidden fallback behavior, or any change to default direct fan-out
+behavior.
