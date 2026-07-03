@@ -201,10 +201,10 @@ not connected to `FusionRouter.route()`.
 
 ## Non-goals for this foundation wave
 
-This layout does not add:
+This original foundation layout wave did not add:
 
-- `agent_chat` runtime
-- planner / coder / reviewer / red-team / closeout execution
+- production autonomous `agent_chat` runtime
+- live planner / coder / reviewer / red-team / closeout execution
 - Commander runtime execution
 - agmsg protocol
 - interactive installer wizard

@@ -200,13 +200,13 @@ no network calls, file writes, process execution, or automatic worker execution.
 
 This schema wave does not implement:
 
-- real `agent_chat` runtime
+- production autonomous `agent_chat` runtime
 - Realtime websocket subscriber
 - Edge Function gateway
 - service-role runtime
 - live Supabase writes in tests
 - CLI agent spawn
-- Commander runtime execution
+- live/production Commander runtime execution in this schema layer
 - external tool execution
 - automatic dependency installation
 - OAuth/API-key setup

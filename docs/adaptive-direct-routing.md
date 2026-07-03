@@ -131,8 +131,8 @@ can build on this by adding:
 - persisted provider registry overrides
 - richer budget allocation across request classes
 
-Non-goals for this wave remain unchanged: no `agent_chat` runtime, no
-interactive installer prompt, no local JSONL audit store, no Supabase migration
-or RPC payload changes, no live remote health checks, no automatic provider
-purchase / API-key setup, and no unsafe fallback after consensus validation
-failure.
+Non-goals for this wave remain unchanged: no production autonomous `agent_chat`
+runtime, no interactive installer prompt, no local JSONL audit store, no
+Supabase migration or RPC payload changes, no live remote health checks, no live
+Supabase Agent Bus runtime writes, no automatic provider purchase / API-key
+setup, and no unsafe fallback after consensus validation failure.
