@@ -12,14 +12,16 @@ final consensus.
 
 ## Status
 
-> **v0.1.1 AgentRuntime threshold.** The repository now has the foundation,
-> Adaptive Direct skeleton, setup generator, standalone AgentChat simulator,
-> Supabase Agent Bus contract, and an explicit opt-in experimental AgentRuntime.
-> Default direct routing remains the production best-answer path. Commander is a
+> **Fusion Router v0.1 Public RC.** The repository has the foundation, Adaptive
+> Direct skeleton, setup generator, standalone AgentChat simulator, Supabase
+> Agent Bus contract, and an explicit opt-in experimental AgentRuntime. Default
+> `direct` routing remains the production-ready best-answer path. Commander is a
 > configurable role contract, not a fixed model. `agent_chat` runs only when a
 > caller supplies an experimental AgentRuntime config and passes
 > `experimentalAgentRuntime: true`; otherwise it fails closed before adapter
-> execution.
+> execution. The live npm scaffold is `create-fusion-router@0.1.3`; `0.1.3` is
+> an engineering NPX scaffold / generated-demo compatibility patch, not a
+> separate product milestone.
 
 ## Quick start
 
@@ -68,7 +70,10 @@ non-commercial research, and non-production testing are the intended evaluation
 allowances; see [License](#license) and [`LICENSE`](LICENSE) for the
 authoritative terms.
 
-See [install docs](docs/install.md) and
+See the [Public RC runbook](docs/public-rc-runbook.md),
+[install docs](docs/install.md),
+[Trusted Publishing runbook](docs/trusted-publishing.md),
+[launch checklist](docs/launch-checklist.md), and
 [Product Hunt launch notes](docs/product-hunt.md) for adoption-focused setup
 paths.
 
@@ -106,8 +111,11 @@ Read the release guide and checklist:
 - [v0.1.2 release notes](docs/release-v0.1.2.md)
 - [v0.1.2 release checklist](docs/release-checklist-v0.1.2.md)
 - [Versioning and Public RC policy](docs/versioning.md)
+- [Public RC operational runbook](docs/public-rc-runbook.md)
+- [Trusted Publishing runbook](docs/trusted-publishing.md)
+- [Launch checklist](docs/launch-checklist.md)
 
-v0.1.1 explicit non-goals:
+Public RC explicit non-goals:
 
 - no production autonomous `agent_chat` runtime
 - no worker spawning or Realtime subscriber

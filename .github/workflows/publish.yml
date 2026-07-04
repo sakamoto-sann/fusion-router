@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to publish, for example v0.1.2
+        description: Explicit release tag to publish, for example v0.1.4
         required: true
-        default: v0.1.2
   push:
     tags:
       - "v*"
@@ -78,6 +77,18 @@ jobs:
             }
           '
           npm pkg get name version license bin files
+        env:
+          EXPECTED_VERSION: ${{ steps.release-ref.outputs.version }}
+
+      - name: Refuse to republish an existing npm version
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd packages/create-fusion-router
+          if npm view "create-fusion-router@${EXPECTED_VERSION}" version >/dev/null 2>&1; then
+            echo "create-fusion-router@${EXPECTED_VERSION} is already published; refusing to republish" >&2
+            exit 1
+          fi
         env:
           EXPECTED_VERSION: ${{ steps.release-ref.outputs.version }}
 

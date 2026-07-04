@@ -15,8 +15,8 @@ cd my-fusion-router-demo
 deno task smoke
 ```
 
-`create-fusion-router@latest` is live on npm and currently resolves to `0.1.3`.
-For a fixed package version:
+npm package: `create-fusion-router@0.1.3`; npm dist-tag: `latest -> 0.1.3`. For
+a fixed package version:
 
 ```bash
 npx --yes create-fusion-router@0.1.3 my-fusion-router-demo
