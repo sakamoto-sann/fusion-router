@@ -63,8 +63,8 @@ AgentRuntime threshold.
       sublicensing, integration, or derivative commercialization requires prior
       written permission.
 - [ ] GitHub Actions workflow `.github/workflows/ci.yml` runs `deno-checks` and
-      `optional-secret-scan` jobs on pull requests and pushes to `main`
-      (job id kept for branch protection; scan is fail-closed).
+      `optional-secret-scan` jobs on pull requests and pushes to `main` (job id
+      kept for branch protection; scan is fail-closed).
 - [ ] `deno-checks` runs lock, check, lint, fmt, test, doctor, and v0.1 smoke
       under Deno only (create-fusion-router tarball whitelist is covered by
       `deno task test`, not a Node CI job).
