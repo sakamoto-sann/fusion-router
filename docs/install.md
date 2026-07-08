@@ -46,9 +46,8 @@ deno task smoke
 The scaffold does not fetch remote code during creation and does not install
 dependencies automatically. `0.1.4` is an engineering patch for the NPX scaffold
 and generated-demo compatibility, not a separate product milestone. The
-generated smoke task imports Fusion Router from the published `v0.1.4` Git tag
-at runtime, so it requires network access to `raw.githubusercontent.com` and the
-release tag must exist.
+generated `deno task smoke` path is offline/fixture-only and does not call a
+provider API or `raw.githubusercontent.com`.
 
 ## Install helper dry run
 
@@ -100,6 +99,7 @@ Adjust the paths if you installed with a different `--prefix`.
 - Clone or checkout errors for `v0.1.4`: verify network access and the ref
   spelling.
 - `fusion-router: command not found`: add `${PREFIX}/bin` to your shell `PATH`.
-- Network failures during `deno task smoke` in the scaffold usually mean
-  `raw.githubusercontent.com` is unreachable or the tagged runtime import cannot
-  be fetched.
+- Scaffold `deno task smoke` is offline/fixture-only. If it fails, check local
+  Deno install / permissions first; do not debug `raw.githubusercontent.com` for
+  smoke. Network is only required for install-helper clone and optional external
+  provider dogfood (`RUN_EXTERNAL_MODEL_DOGFOOD=1`).
