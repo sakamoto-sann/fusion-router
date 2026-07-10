@@ -65,6 +65,26 @@ function rankAutoCandidates(
   ).map(({ entry }) => entry);
 }
 
+function withPreferredAutoListedModel(
+  entry: ModelInventoryEntry,
+): ModelInventoryEntry {
+  const listed = entry.listed_models ?? [];
+  const preferred =
+    listed.find((model) => model === "grok-composer-2.5-fast") ??
+      listed.find((model) => model.includes("composer"));
+  if (!preferred) return entry;
+  return {
+    ...entry,
+    model: preferred,
+    model_id: `${entry.provider.toLowerCase()}/${preferred}`,
+    invocation_model: preferred,
+    notes: [
+      ...entry.notes,
+      `Auto-selected listed model ${preferred} for this invocation.`,
+    ],
+  };
+}
+
 function withRequestedListedModel(
   entry: ModelInventoryEntry,
   requestedModel: string | undefined,
@@ -119,7 +139,9 @@ export function selectInvokableCandidates(
   request = readProviderSelectionRequest(),
   allEntries: ModelInventoryEntry[] = candidates,
 ): ModelInventoryEntry[] {
-  if (!hasExplicitSelection(request)) return rankAutoCandidates(candidates);
+  if (!hasExplicitSelection(request)) {
+    return rankAutoCandidates(candidates).map(withPreferredAutoListedModel);
+  }
 
   const filtered = candidates.filter((entry) => {
     const providerMatches = providerSelectionMatches(
@@ -169,24 +191,48 @@ export async function invokeSelected(
   }
   const prepared = await preparePromptWithContext(prompt);
   const safePrompt = prepared.prompt;
-  const selected = candidates[0];
-  if (!selectionHonored(request, selected)) {
+  const errors: string[] = [];
+  let selected: ModelInventoryEntry | undefined;
+  let result: ProviderResult | undefined;
+  let selectedIndex = -1;
+
+  for (const [index, candidate] of candidates.entries()) {
+    if (!selectionHonored(request, candidate)) {
+      throw new Error(
+        `Fusion Router blocked: provider selection was not honored (${
+          requestedText(request)
+        } selected=${candidate.provider}/${candidate.model})`,
+      );
+    }
+    try {
+      const candidateResult = candidate.source === "env_fallback"
+        ? await callEnvFallback(safePrompt)
+        : await callWrapper(candidate, safePrompt);
+      if (!selectionHonored(request, candidateResult)) {
+        throw new Error(
+          `provider selection was ignored after invocation (${
+            requestedText(request)
+          } selected=${candidateResult.provider}/${candidateResult.model})`,
+        );
+      }
+      selected = candidate;
+      result = candidateResult;
+      selectedIndex = index;
+      break;
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+      if (hasExplicitSelection(request)) break;
+    }
+  }
+
+  if (!selected || !result) {
     throw new Error(
-      `Fusion Router blocked: provider selection was not honored (${
-        requestedText(request)
-      } selected=${selected.provider}/${selected.model})`,
+      `OAuth/session-first provider unavailable. all candidates failed safely: ${
+        errors.join("; ")
+      }`,
     );
   }
-  const result = selected.source === "env_fallback"
-    ? await callEnvFallback(safePrompt)
-    : await callWrapper(selected, safePrompt);
-  if (!selectionHonored(request, result)) {
-    throw new Error(
-      `Fusion Router blocked: provider selection was ignored after invocation (${
-        requestedText(request)
-      } selected=${result.provider}/${result.model})`,
-    );
-  }
+
   const row = score(result);
   const trace = await buildTrace({
     command: "route:once",
@@ -197,10 +243,11 @@ export async function invokeSelected(
     results: [result],
     selected: row,
     scores: [row],
+    errors,
     requestedProviderLabel: request.providerLabel,
     requestedModel: request.model,
     providerSelectionHonored: selectionHonored(request, result),
-    fallbackUsed: selected.source === "env_fallback",
+    fallbackUsed: selectedIndex > 0 || selected.source === "env_fallback",
   });
   const tracePath = await writeTrace("route-once-trace", trace);
   return { results: [result], tracePath, trace };

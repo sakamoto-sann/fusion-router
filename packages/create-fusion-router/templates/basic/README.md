@@ -68,6 +68,10 @@ Behavior:
 - `agent-chat` requires both `RUN_EXTERNAL_MODEL_DOGFOOD=1` and
   `RUN_EXPERIMENTAL_AGENT_CHAT=1`.
 - Default auth mode is OAuth/session/wrapper-first.
+- In auto mode, `route:once` prefers list-verified wrapper models and safely
+  tries the next wrapper when an invocation fails; the trace records the failed
+  attempt and `fallback_used`.
+- Explicit provider/model selection never falls back to a different wrapper.
 - Env fallback is used only with `FUSION_ROUTER_AUTH_MODE=env` and local private
   credential environment.
 - Traces are redacted and written under `out/`.

@@ -7136,8 +7136,12 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
         '  *"valid stdout auth phrase"*)',
         "    printf 'Not logged in users are redirected to the login page.\\n'",
         "    ;;",
-        '  *"auto route should avoid noisy codex"*)',
+        '  *"auto route should prefer list verified grok"*)',
         "    printf 'Grok default fixture answer with enough content for auto route.\\n'",
+        "    ;;",
+        '  *"auto route should fall back after grok failure"*)',
+        "    printf 'fixture quota exhausted\\n' >&2",
+        "    exit 14",
         "    ;;",
         '  *"--model grok-build"*)',
         "    printf 'Grok build fixture answer with enough content for schema validation.\\n'",
@@ -7161,6 +7165,12 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
       [
         "#!/bin/sh",
         "printf 'codex was invoked\\n' >> \"$HOME/codex-called.txt\"",
+        'case " $* " in',
+        '  *"auto route should fall back after grok failure"*)',
+        "    printf 'Codex fallback fixture answer.\\n'",
+        "    exit 0",
+        "    ;;",
+        "esac",
         "printf 'Reading additional input from stdin...\\n'",
         "printf 'OpenAI Codex v0.136.0\\n'",
         "printf 'ERROR rmcp::transport::worker AuthRequiredError\\n' >&2",
@@ -7184,7 +7194,7 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
         "task",
         "route:once",
         "--prompt",
-        "auto route should avoid noisy codex",
+        "auto route should prefer list verified grok",
       ],
       cwd: `${tempDir}/demo`,
       clearEnv: true,
@@ -7198,6 +7208,39 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
     assertStringIncludes(autoRouteOutput, "provider: xAI");
     assert(!autoRouteOutput.includes("provider: OpenAI"));
     await assertRejects(() => Deno.stat(`${tempDir}/codex-called.txt`));
+
+    const fallbackRoute = await new Deno.Command("deno", {
+      args: [
+        "task",
+        "route:once",
+        "--prompt",
+        "auto route should fall back after grok failure",
+      ],
+      cwd: `${tempDir}/demo`,
+      clearEnv: true,
+      env: baseEnv,
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    const fallbackRouteOutput = new TextDecoder().decode(fallbackRoute.stdout) +
+      new TextDecoder().decode(fallbackRoute.stderr);
+    assertEquals(fallbackRoute.code, 0, fallbackRouteOutput);
+    assertStringIncludes(fallbackRouteOutput, "provider: OpenAI");
+    assertStringIncludes(fallbackRouteOutput, "Codex fallback fixture answer.");
+    await Deno.stat(`${tempDir}/codex-called.txt`);
+    const fallbackTrace = JSON.parse(
+      await Deno.readTextFile(`${tempDir}/demo/out/route-once-trace.json`),
+    ) as Record<string, unknown>;
+    assertEquals(fallbackTrace.selected_provider, "OpenAI");
+    assertEquals(fallbackTrace.fallback_used, true);
+    assertEquals(fallbackTrace.provider_selection_honored, true);
+    const fallbackErrors = fallbackTrace.errors as string[];
+    assertEquals(fallbackErrors.length, 1);
+    assertStringIncludes(
+      fallbackErrors[0],
+      "xAI/grok-composer-2.5-fast exited 14",
+    );
+    await Deno.remove(`${tempDir}/codex-called.txt`);
 
     for (
       const [requestedModel, expectedModel] of [
@@ -7257,6 +7300,33 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
         assert(!grokArgLines.includes("--no-subagents"));
       }
     }
+
+    const forcedAgentChat = await new Deno.Command("deno", {
+      args: ["task", "agent-chat", "--prompt", "forced agent chat"],
+      cwd: `${tempDir}/demo`,
+      clearEnv: true,
+      env: {
+        ...baseEnv,
+        RUN_EXPERIMENTAL_AGENT_CHAT: "1",
+        FUSION_ROUTER_PROVIDER_LABEL: "grok-cli",
+        FUSION_ROUTER_PROVIDER_MODEL: "grok-composer-2.5-fast",
+      },
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    const forcedAgentChatOutput =
+      new TextDecoder().decode(forcedAgentChat.stdout) +
+      new TextDecoder().decode(forcedAgentChat.stderr);
+    assertEquals(forcedAgentChat.code, 0, forcedAgentChatOutput);
+    const agentChatTrace = JSON.parse(
+      await Deno.readTextFile(`${tempDir}/demo/out/agent-chat-trace.json`),
+    ) as Record<string, unknown>;
+    assertEquals(agentChatTrace.requested_provider_label, "grok-cli");
+    assertEquals(agentChatTrace.requested_model, "grok-composer-2.5-fast");
+    assertEquals(agentChatTrace.selected_provider, "xAI");
+    assertEquals(agentChatTrace.selected_model, "grok-composer-2.5-fast");
+    assertEquals(agentChatTrace.provider_selection_honored, true);
+    assertEquals(agentChatTrace.fallback_used, false);
 
     await assertRejects(() => Deno.stat(`${tempDir}/codex-called.txt`));
 
