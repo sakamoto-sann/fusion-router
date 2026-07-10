@@ -37,6 +37,10 @@ export type ModelInventory = {
 export type ProviderResult = {
   provider: string;
   model: string;
+  model_id?: string;
+  source?: string;
+  command?: string;
+  listed_models?: string[];
   response_received: boolean;
   schema_valid: boolean;
   response_summary: string;
@@ -78,6 +82,12 @@ export type DogfoodTrace = {
   auth_mode: AuthMode;
   provider?: string;
   model?: string;
+  requested_provider_label?: string;
+  requested_model?: string;
+  selected_provider?: string;
+  selected_model?: string;
+  provider_selection_honored: boolean;
+  fallback_used: boolean;
   prompt_hash?: string;
   prompt_summary?: string;
   prompt_context?: PromptContextTrace;

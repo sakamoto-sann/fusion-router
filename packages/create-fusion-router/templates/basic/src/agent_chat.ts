@@ -11,7 +11,8 @@ import {
 } from "./schema.ts";
 import { buildTrace, score, writeTrace } from "./trace.ts";
 import { callWrapper } from "./wrapper_client.ts";
-import { selectInvokableCandidates } from "./best_route.ts";
+import { selectInvokableCandidates, selectionHonored } from "./best_route.ts";
+import { readProviderSelectionRequest } from "./provider_registry.ts";
 import { preparePromptWithContext } from "./context.ts";
 
 export async function runAgentChat(
@@ -20,10 +21,13 @@ export async function runAgentChat(
   assertAgentChatOptIn();
   assertOptIn();
   const authMode = parseAuthMode(Deno.env.get("FUSION_ROUTER_AUTH_MODE"));
-  const inventory = await discoverInventoryWithModelListing(authMode);
+  const request = readProviderSelectionRequest();
+  const inventory = await discoverInventoryWithModelListing(authMode, request);
   const candidates = selectInvokableCandidates(
     invokableEntries(inventory),
     authMode,
+    request,
+    inventory.entries,
   );
   if (candidates.length === 0) {
     throw new Error(
@@ -33,11 +37,21 @@ export async function runAgentChat(
   const prepared = await preparePromptWithContext(prompt);
   const safePrompt = prepared.prompt;
   const selected = candidates[0];
+  if (!selectionHonored(request, selected)) {
+    throw new Error(
+      `Fusion Router blocked: agent-chat provider selection was not honored (selected=${selected.provider}/${selected.model})`,
+    );
+  }
   const agentPrompt =
     `Experimental agent_chat review. Label this as experimental and keep concise. Prompt: ${safePrompt}`;
   const result: ProviderResult = selected.source === "env_fallback"
     ? await callEnvFallback(agentPrompt)
     : await callWrapper(selected, agentPrompt);
+  if (!selectionHonored(request, result)) {
+    throw new Error(
+      `Fusion Router blocked: agent-chat provider selection was ignored after invocation (selected=${result.provider}/${result.model})`,
+    );
+  }
   const row = score(result);
   const trace = await buildTrace({
     command: "agent-chat",
@@ -48,6 +62,10 @@ export async function runAgentChat(
     results: [result],
     selected: row,
     scores: [row],
+    requestedProviderLabel: request.providerLabel,
+    requestedModel: request.model,
+    providerSelectionHonored: selectionHonored(request, result),
+    fallbackUsed: selected.source === "env_fallback",
     agentChat: true,
   });
   const tracePath = await writeTrace("agent-chat-trace", trace);
