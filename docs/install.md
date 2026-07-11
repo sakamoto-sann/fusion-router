@@ -71,6 +71,9 @@ Wrapper commands:
 
 ```bash
 quorum-router doctor
+quorum-router models list
+quorum-router models add codex gpt-5.4-mini
+quorum-router models probe codex gpt-5.4-mini
 quorum-router smoke
 quorum-router test
 quorum-router version

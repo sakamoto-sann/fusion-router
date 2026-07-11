@@ -15,7 +15,7 @@ export function buildWrapperArgs(
       ? outPath
       : arg
   );
-  if (entry.command === "grok" && entry.invocation_model) {
+  if (entry.invocation_model) {
     return ["--model", entry.invocation_model, ...args];
   }
   return args;
@@ -85,11 +85,10 @@ export async function callWrapper(
       `local model dogfood blocked: ${entry.provider} has no command`,
     );
   }
-  await Deno.mkdir("../../out/dogfood/local-model-dogfood", {
-    recursive: true,
-  });
-  const outPath =
-    `../../out/dogfood/local-model-dogfood/tmp-${crypto.randomUUID()}.txt`;
+  const outDir =
+    `${import.meta.dirname}/../../../out/dogfood/local-model-dogfood`;
+  await Deno.mkdir(outDir, { recursive: true });
+  const outPath = `${outDir}/tmp-${crypto.randomUUID()}.txt`;
   try {
     const child = new Deno.Command(entry.command, {
       args: buildWrapperArgs(entry, prompt, outPath),

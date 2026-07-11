@@ -106,6 +106,10 @@ case "\$cmd" in
   test)
     cd "\$REPO_DIR" && exec deno task test
     ;;
+  models)
+    shift || true
+    cd "\$REPO_DIR" && exec deno task models -- "\$@"
+    ;;
   version)
     git -C "\$REPO_DIR" describe --tags --always --dirty
     ;;
@@ -148,11 +152,11 @@ case "\$cmd" in
     echo "QuorumRouter updated to \$(git -C "\$REPO_DIR" describe --tags --always)"
     ;;
   --help|-h|help)
-    echo "quorum-router helper commands: doctor, smoke, test, version, update [--check]"
+    echo "quorum-router helper commands: doctor, models, smoke, test, version, update [--check]"
     ;;
   *)
     echo "unknown command: \$cmd" >&2
-    echo "quorum-router helper commands: doctor, smoke, test, version, update [--check]" >&2
+    echo "quorum-router helper commands: doctor, models, smoke, test, version, update [--check]" >&2
     exit 2
     ;;
 esac
