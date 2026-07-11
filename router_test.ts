@@ -6139,6 +6139,76 @@ Deno.test("doctor treats unconfigured Supabase audit as informational", async ()
   assertEquals(check.severity, "info");
 });
 
+Deno.test("doctor reports invalid model catalog persistence without leaking values", async () => {
+  const dir = await Deno.makeTempDir();
+  const configPath = `${dir}/models.json`;
+  const marker = "private-model-config-marker";
+  try {
+    await Deno.writeTextFile(configPath, `{not-json:${marker}}`);
+    const output = await new Deno.Command(Deno.execPath(), {
+      args: doctorArgs(`${Deno.cwd()}/doctor.ts`),
+      clearEnv: true,
+      env: isolatedDoctorEnv({
+        HOME: dir,
+        QUORUM_ROUTER_MODEL_CONFIG: configPath,
+        QUORUM_ROUTER_VERIFIED_MODEL_CACHE: `${dir}/verified.json`,
+      }),
+    }).output();
+    assertEquals(output.code, 1);
+    const text = new TextDecoder().decode(output.stdout);
+    assert(!text.includes(marker));
+    const report = JSON.parse(text);
+    const check = report.checks.find((item: { name: string }) =>
+      item.name === "model_catalog_persistence"
+    );
+    assertEquals(check.ok, false);
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
+Deno.test("doctor never reports a cached model ready when its wrapper is missing", async () => {
+  const dir = await Deno.makeTempDir();
+  const cachePath = `${dir}/verified.json`;
+  try {
+    await Deno.writeTextFile(
+      cachePath,
+      JSON.stringify({
+        schema_version: "quorum-router.verified-model-cache.v3",
+        records: [{
+          providerKey: "codex",
+          provider: "OpenAI",
+          wrapper: "codex",
+          wrapperPath: `${dir}/missing-codex`,
+          wrapperFingerprint: `sha256:${"0".repeat(64)}`,
+          model: "test-model",
+          authMode: "oauth",
+          verifiedAt: new Date().toISOString(),
+        }],
+      }),
+    );
+    const output = await new Deno.Command(Deno.execPath(), {
+      args: doctorArgs(`${Deno.cwd()}/doctor.ts`),
+      clearEnv: true,
+      env: isolatedDoctorEnv({
+        HOME: dir,
+        PATH: "",
+        QUORUM_ROUTER_VERIFIED_MODEL_CACHE: cachePath,
+      }),
+    }).output();
+    assertEquals(output.code, 0);
+    const report = JSON.parse(new TextDecoder().decode(output.stdout));
+    const codex = report.provider_inventory.rows.find((
+      row: { provider_key: string },
+    ) => row.provider_key === "codex");
+    assertEquals(codex.wrapper_state, "missing");
+    assertEquals(codex.invoke_readiness, "blocked");
+    assertEquals(codex.action, "install codex");
+  } finally {
+    await Deno.remove(dir, { recursive: true });
+  }
+});
+
 Deno.test("doctor default output aggregates provider inventory and core checks", async () => {
   const output = await new Deno.Command(Deno.execPath(), {
     args: [
@@ -6153,11 +6223,15 @@ Deno.test("doctor default output aggregates provider inventory and core checks",
   }).output();
   assertEquals(output.code, 0);
   const text = new TextDecoder().decode(output.stdout);
-  assertStringIncludes(text, "| provider | model | wrapper | auth |");
+  assertStringIncludes(
+    text,
+    "| provider key | command | auth | wrapper state | catalog state |",
+  );
+  assertStringIncludes(text, "Recommended actions");
   assertStringIncludes(text, "Core checks");
   assertStringIncludes(
     text,
-    "Live authentication is confirmed only by an explicit opt-in invocation",
+    "Only `quorum-router models probe` performs a live call",
   );
 });
 

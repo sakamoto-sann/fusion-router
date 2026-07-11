@@ -212,6 +212,18 @@ Deno.test("local model dogfood selection honors Grok listed model aliases", () =
   }
 });
 
+Deno.test("wrapper model override applies to non-Grok CLIs", () => {
+  const entry = fixtureCandidates().find((candidate) =>
+    candidate.command === "codex"
+  )!;
+  const args = buildWrapperArgs(
+    { ...entry, invocation_model: "gpt-5.4-mini" },
+    "hello",
+    "out.txt",
+  );
+  assertEquals(args.slice(0, 3), ["--model", "gpt-5.4-mini", "exec"]);
+});
+
 Deno.test("local model dogfood unknown requested provider fails safely", () => {
   setEnvForTest({
     QUORUM_ROUTER_PROVIDER_LABEL: "missing-provider",

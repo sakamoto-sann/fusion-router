@@ -22,6 +22,7 @@ Repo-local dogfood workspace:
 
 ```bash
 deno task doctor
+deno task models -- list
 cd examples/local-model-dogfood
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task route:once --prompt "Review this README for risky claims."
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task best-route --prompt "Choose the safest launch copy."
@@ -126,6 +127,8 @@ deno task smoke:v0.1
   [docs/prompt-caching.md](docs/prompt-caching.md)
 - benchmark methodology and current pilot results:
   [docs/bench.md](docs/bench.md)
+- verified model catalog, explicit config, and probes:
+  [docs/model-catalog.md](docs/model-catalog.md)
 - security notes: [docs/security.md](docs/security.md)
 
 ## License and boundaries
