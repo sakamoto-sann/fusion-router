@@ -8167,10 +8167,13 @@ Deno.test("install and Product Hunt docs preserve license and security boundarie
   );
 });
 
-Deno.test("README and v0.1.2 docs expose install paths without hardcoded target SHA", async () => {
+Deno.test("README and v0.1.2 docs expose working install paths without hardcoded target SHA", async () => {
   const readme = await Deno.readTextFile("README.md");
   const normalizedMainReadme = readme.replace(/\s+/g, " ");
-  assertStringIncludes(readme, "npx --yes create-quorum-router@latest");
+  assertStringIncludes(
+    readme,
+    "npx --yes github:sakamoto-sann/quorum-router#main",
+  );
   assertStringIncludes(readme, "install.sh | sh -s -- --dry-run");
   assertStringIncludes(readme, "Source-Available Non-Commercial");
   assertStringIncludes(normalizedMainReadme, "not an open source license");

@@ -1,6 +1,6 @@
 # create-quorum-router
 
-Create a local QuorumRouter evaluation demo.
+Create a local QuorumRouter project scaffold.
 
 QuorumRouter is **Source-Available Non-Commercial**. This is **not open
 source**. Commercial, production, hosted-service/SaaS/API, redistribution,

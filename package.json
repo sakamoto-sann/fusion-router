@@ -1,0 +1,17 @@
+{
+  "name": "quorum-router-source-installer",
+  "version": "0.1.4",
+  "private": true,
+  "description": "Source installer entrypoint for QuorumRouter.",
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sakamoto-sann/quorum-router.git"
+  },
+  "bin": {
+    "create-quorum-router": "packages/create-quorum-router/bin/create-quorum-router.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

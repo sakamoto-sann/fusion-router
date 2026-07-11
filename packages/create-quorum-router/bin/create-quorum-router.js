@@ -16,7 +16,7 @@ Usage:
   create-quorum-router --help
   create-quorum-router --version
 
-Creates a local QuorumRouter evaluation demo. The scaffold does not fetch remote
+Creates a local QuorumRouter project scaffold. The scaffold does not fetch remote
 code, install dependencies, ask for credentials, write secrets, enable process
 adapters, or configure live runtime services. Fixture smoke is deterministic;
 external provider dogfood and GitHub URL context fetching are explicit manual
@@ -110,7 +110,7 @@ function main() {
   fs.mkdirSync(path.join(targetDir, "out"), { recursive: true });
   fs.writeFileSync(path.join(targetDir, "out", ".gitkeep"), "");
 
-  console.log(`Created QuorumRouter evaluation demo in ${targetDir}`);
+  console.log(`Created QuorumRouter project in ${targetDir}`);
   console.log("");
   console.log("Next steps:");
   console.log(`  cd ${path.relative(process.cwd(), targetDir) || "."}`);
@@ -138,7 +138,9 @@ function main() {
   console.log(
     '  RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task best-route --prompt "Choose the safest launch copy."',
   );
-  console.log("  # Experimental Agent Chat stays explicit opt-in:");
+  console.log(
+    "  # Optional conversation-only Agent Chat stays explicit opt-in:",
+  );
   console.log(
     '  RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_EXPERIMENTAL_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."',
   );
