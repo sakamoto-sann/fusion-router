@@ -38,6 +38,7 @@ deno --version
 ```bash
 deno task smoke
 deno task calibration:demo
+deno task calibration:hierarchy-demo
 deno task intake
 deno task auth:status
 deno task models:list
@@ -48,15 +49,18 @@ deno task supabase:status
 `smoke` proves the local scaffold runs with deterministic fixtures only. It does
 **not** call a real provider API.
 
-`calibration:demo` exercises the bundled calibration-by-task API with local
-fixture observations. Calibration reports are advisory-only: the scaffold does
-not use them to change routing weights, ranks, provider eligibility, quorum, or
-execution. The command does not call provider APIs; on a new Deno installation,
-its first run resolves the pinned Zod dependency before execution.
+`calibration:demo` exercises the bundled flat calibration-by-task API with local
+fixture observations. `calibration:hierarchy-demo` runs three deterministic
+queries that select a sufficient prompt-pattern group, fall back to task
+subtype, and fall back again to task type. Calibration reports are
+advisory-only: the scaffold does not use them to change routing weights, ranks,
+provider eligibility, quorum, or execution. Both demos are local-only; the
+hierarchy demo does not call provider APIs. On a new Deno installation, the
+first run resolves the pinned Zod dependency before execution.
 
-For narrower diagnostics, import `aggregateHierarchicalTaskCalibration()` and
-`resolveHierarchicalTaskCalibration()` from `src/calibration.ts`. For example,
-classify an observation with `task_type: "code_review"`,
+The hierarchical demo uses `aggregateHierarchicalTaskCalibration()` and
+`resolveHierarchicalTaskCalibration()` from `src/calibration.ts`. Its
+observations use caller-defined categories such as `task_type: "code-review"`,
 `task_subtype: "typescript"`, and `prompt_pattern: "schema-boundary-review"`.
 Resolution checks `prompt_pattern → task_subtype → task_type`, using the first
 group that reaches the configured sample threshold. Groups never cross exact

@@ -149,6 +149,16 @@ same caller-attested observations at up to three scopes:
 2. `task_subtype`
 3. `prompt_pattern`
 
+Generated workspaces include a deterministic walkthrough of all three selection
+levels:
+
+```bash
+deno task calibration:hierarchy-demo
+```
+
+The command uses local fixture observations, makes no provider calls, and prints
+one direct pattern selection followed by subtype and task fallback examples.
+
 A pattern requires a subtype. Each observation contributes to its task group,
 and to subtype and pattern groups only when those labels are present. Provider
 and model remain part of every group key, so fallback never crosses a source

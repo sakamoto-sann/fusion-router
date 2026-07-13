@@ -7,6 +7,7 @@
     "check": "deno check main.ts src/*.ts",
     "smoke": "deno run main.ts",
     "calibration:demo": "deno run src/calibration_demo.ts",
+    "calibration:hierarchy-demo": "deno run src/hierarchical_calibration_demo.ts",
     "intake": "deno run --allow-read --allow-write --allow-env --allow-net --allow-run=grok,codex,claude,gemini,devin src/cli.ts intake",
     "auth:status": "deno run --allow-read --allow-env --allow-run=grok,codex,claude,gemini,devin src/cli.ts auth:status",
     "auth:login": "deno run src/cli.ts auth:login",

@@ -8210,6 +8210,7 @@ Deno.test("create-quorum-router package files and metadata are release-safe", as
     "packages/create-quorum-router/templates/basic/src/agent_chat.ts",
     "packages/create-quorum-router/templates/basic/src/calibration.ts",
     "packages/create-quorum-router/templates/basic/src/calibration_demo.ts",
+    "packages/create-quorum-router/templates/basic/src/hierarchical_calibration_demo.ts",
     "packages/create-quorum-router/templates/basic/src/calibration_route.ts",
     "packages/create-quorum-router/templates/basic/src/context.ts",
     "packages/create-quorum-router/templates/basic/src/trace.ts",
@@ -8303,6 +8304,7 @@ Deno.test("create-quorum-router package files and metadata are release-safe", as
       "best-route",
       "agent-chat",
       "calibration:demo",
+      "calibration:hierarchy-demo",
     ]
   ) {
     assert(task in templateTasks, `missing generated task ${task}`);
@@ -8322,6 +8324,10 @@ Deno.test("create-quorum-router package files and metadata are release-safe", as
   assertStringIncludes(
     String(templateTasks["calibration:demo"]),
     "calibration_demo.ts",
+  );
+  assertStringIncludes(
+    String(templateTasks["calibration:hierarchy-demo"]),
+    "hierarchical_calibration_demo.ts",
   );
   assertEquals(
     await Deno.readTextFile(
@@ -8779,6 +8785,7 @@ Deno.test("create-quorum-router npm tarball contents are constrained", async () 
     "templates/basic/src/cost_aware.ts",
     "templates/basic/src/env.ts",
     "templates/basic/src/fixture_smoke.ts",
+    "templates/basic/src/hierarchical_calibration_demo.ts",
     "templates/basic/src/intake.ts",
     "templates/basic/src/model_inventory.ts",
     "templates/basic/src/provider_client.ts",
@@ -8791,6 +8798,10 @@ Deno.test("create-quorum-router npm tarball contents are constrained", async () 
     "templates/basic/supabase/migrations/20260701130000_workflow_access_audit.sql",
     "templates/basic/supabase/migrations/20260712211500_workflow_access_audit_limits.sql",
   ]);
+  const hierarchyDemoFile = packed.files.find((file) =>
+    file.path === "templates/basic/src/hierarchical_calibration_demo.ts"
+  );
+  assertEquals(hierarchyDemoFile?.mode, 0o644);
   const costAwareFile = packed.files.find((file) =>
     file.path === "templates/basic/src/cost_aware.ts"
   );
@@ -10089,6 +10100,39 @@ Deno.test("install helper is dry-run safe and avoids credential/runtime setup", 
   } finally {
     await Deno.remove(tempDir, { recursive: true });
   }
+});
+
+Deno.test("hierarchical calibration demo shows each fallback level without provider calls", async () => {
+  const output = await new Deno.Command(Deno.execPath(), {
+    args: ["run", "src/hierarchical_calibration_demo.ts"],
+    cwd: "packages/create-quorum-router/templates/basic",
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  assertEquals(output.code, 0, new TextDecoder().decode(output.stderr));
+
+  const demo = JSON.parse(new TextDecoder().decode(output.stdout));
+  assertEquals(demo.schema_version, "quorum-router.hierarchical-demo.v1");
+  assertEquals(demo.advisory_only, true);
+  assertEquals(demo.provider_request_sent, false);
+  assertEquals(demo.observation_count, 6);
+  assertEquals(
+    demo.scenarios.map((scenario: { selected_scope: string }) =>
+      scenario.selected_scope
+    ),
+    ["prompt_pattern", "task_subtype", "task_type"],
+  );
+  assertEquals(
+    demo.scenarios.map(
+      (scenario: { candidates: Array<{ sample_status: string }> }) =>
+        scenario.candidates.map((candidate) => candidate.sample_status),
+    ),
+    [
+      ["sufficient", "sufficient", "sufficient"],
+      ["insufficient", "sufficient", "sufficient"],
+      ["insufficient", "insufficient", "sufficient"],
+    ],
+  );
 });
 
 Deno.test("calibration demo claims disclose first-run dependency resolution", async () => {
