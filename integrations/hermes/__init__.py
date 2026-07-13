@@ -21,7 +21,7 @@ def register(ctx) -> None:
         handler=tools.health,
         check_fn=tools.is_available,
         requires_env=[],
-        description="Check QuorumRouter provider readiness without generation",
+        description="Check provider command discovery; live authentication is not checked",
         emoji="🩺",
     )
     ctx.register_tool(

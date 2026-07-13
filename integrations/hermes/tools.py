@@ -85,8 +85,9 @@ AGENT_CHAT_SCHEMA = {
 HEALTH_SCHEMA = {
     "name": "quorum_router_health",
     "description": (
-        "Inspect QuorumRouter's local provider inventory and readiness without sending "
-        "a generation request. Use before the first routed call or when routing fails."
+        "Inspect QuorumRouter's local provider command inventory without sending a "
+        "generation request. Authentication is reported as not_checked; only a live "
+        "route can verify it."
     ),
     "parameters": {"type": "object", "properties": {}},
 }
@@ -134,7 +135,7 @@ def _bridge_path() -> Path:
 
 def _provider_commands() -> list[str]:
     resolved: list[str] = []
-    for name in ("codex", "claude", "gemini", "grok", "devin", "qwen"):
+    for name in ("codex", "claude", "gemini", "grok", "devin"):
         path = shutil.which(name)
         if path:
             absolute = str(Path(path).absolute())
