@@ -1,5 +1,10 @@
 import type { BudgetManager } from "./budget/budget.ts";
 import {
+  aggregateTaskCalibration,
+  type TaskCalibrationOptions,
+  type TaskCalibrationReport,
+} from "./calibration/calibration.ts";
+import {
   type AgentRuntimeConfig,
   runAgentRuntime,
 } from "./agent-runtime/index.ts";
@@ -113,6 +118,7 @@ function buildDecisionReport(args: {
   successfulOutputs: ModelOutput[];
   failedAdapters: number;
   failures?: DecisionFailure[];
+  calibration?: TaskCalibrationReport;
 }): DecisionReport {
   return DecisionReportSchema.parse({
     schema_version: "quorum-router.decision-report.v1",
@@ -132,6 +138,7 @@ function buildDecisionReport(args: {
       `${output.provider}/${output.model}`
     ),
     failures: args.failures ?? [],
+    ...(args.calibration ? { calibration: args.calibration } : {}),
   });
 }
 
@@ -155,6 +162,10 @@ export type QuorumRouterRouteOptions = {
   providerReadinessHints?: DirectRoutingPolicyInput["readinessHints"];
   directRoutingBudgetManager?: BudgetManager;
   experimentalAgentRuntime?: boolean;
+  calibration?: {
+    observations: readonly unknown[];
+    options?: TaskCalibrationOptions;
+  };
 };
 
 export class QuorumRouter {
@@ -323,7 +334,9 @@ export class QuorumRouter {
       return FinalSynthesisSchema.parse({
         synthesis: runtimeResult.finalAnswer,
         reasoning: runtimeResult.decision.reason,
-        consensusModel: "AgentRuntime/experimental",
+        consensusModel: this.agentRuntime?.execution
+          ? "AgentRuntime/SafeLoop"
+          : "AgentRuntime/conversation-only",
         sources: runtimeResult.transcript.turns.map((turn) =>
           `${String(turn.metadata.provider)}/${String(turn.metadata.model)}`
         ),
@@ -354,6 +367,21 @@ export class QuorumRouter {
     prompt: string,
     options: QuorumRouterRouteOptions,
   ): Promise<DecisionReportEnvelope> {
+    let calibration: TaskCalibrationReport | undefined;
+    if (options.calibration) {
+      try {
+        calibration = aggregateTaskCalibration(
+          options.calibration.observations,
+          options.calibration.options,
+        );
+      } catch {
+        failClosed(
+          4400,
+          "calibration_validation_failed",
+          "Calibration evidence failed validation.",
+        );
+      }
+    }
     const routingMode = this.describeRoutingModeDecisionForRequest(options);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
@@ -377,6 +405,7 @@ export class QuorumRouter {
           attemptedAdapters: 0,
           successfulOutputs: [],
           failedAdapters: 0,
+          calibration,
         });
         failClosed(
           4401,
@@ -422,6 +451,7 @@ export class QuorumRouter {
           successfulOutputs,
           failedAdapters: telemetry.failedAdapters,
           failures: decisionFailuresFromTelemetry(telemetry),
+          calibration,
         });
         failClosed(
           4401,
@@ -472,6 +502,7 @@ export class QuorumRouter {
           successfulOutputs,
           failedAdapters: telemetry.failedAdapters,
           failures: decisionFailuresFromTelemetry(telemetry),
+          calibration,
         });
         return DecisionReportEnvelopeSchema.parse({
           final,
@@ -495,6 +526,7 @@ export class QuorumRouter {
               code: "synthesis_failed",
             },
           ],
+          calibration,
         });
         failClosed(
           4401,

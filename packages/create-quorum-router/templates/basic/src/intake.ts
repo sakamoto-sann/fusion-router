@@ -8,7 +8,7 @@ import { buildTrace, writeTrace } from "./trace.ts";
 export async function runIntake(): Promise<void> {
   const inventory = await discoverInventoryWithModelListing();
   await writeInventory(inventory);
-  const usable = invokableEntries(inventory);
+  const invokable = invokableEntries(inventory);
   console.log("QuorumRouter intake");
   console.log("");
   console.log("Step 1 — Detect local providers");
@@ -16,7 +16,10 @@ export async function runIntake(): Promise<void> {
   printInventoryTable(inventory);
   console.log("");
   console.log("Step 2 — OAuth/session status");
-  console.log(`Usable OAuth/session/wrapper providers: ${usable.length}`);
+  console.log(
+    `Discovered invokable OAuth/session/wrapper providers: ${invokable.length}`,
+  );
+  console.log("Live provider authentication verified: false");
   console.log("Provider request sent: false");
   console.log("Credential values printed: false");
   console.log("");
@@ -35,8 +38,8 @@ export async function runIntake(): Promise<void> {
     command: "intake-health",
     mode: "health",
     authMode: inventory.auth_mode,
-    errors: usable.length === 0
-      ? ["no usable OAuth/session/wrapper provider is available yet"]
+    errors: invokable.length === 0
+      ? ["no invokable OAuth/session/wrapper provider was discovered"]
       : [],
   });
   const tracePath = await writeTrace("intake-health-trace", trace);
@@ -44,10 +47,10 @@ export async function runIntake(): Promise<void> {
   console.log("");
   console.log("Step 6 — Recommended next action");
   console.log("");
-  if (usable.length === 0) {
+  if (invokable.length === 0) {
     console.log("QuorumRouter intake blocked");
     console.log("");
-    console.log("No usable OAuth/session/wrapper provider is available yet.");
+    console.log("No invokable OAuth/session/wrapper provider was discovered.");
     console.log("");
     console.log("Next:");
     console.log("  deno task auth:login");

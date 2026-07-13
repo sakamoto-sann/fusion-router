@@ -96,9 +96,12 @@ export function assertOptIn(): void {
 }
 
 export function assertAgentChatOptIn(): void {
-  if (Deno.env.get("RUN_EXPERIMENTAL_AGENT_CHAT") !== "1") {
+  if (
+    Deno.env.get("RUN_AGENT_CHAT") !== "1" &&
+    Deno.env.get("RUN_EXPERIMENTAL_AGENT_CHAT") !== "1"
+  ) {
     throw new Error(
-      "agent_chat blocked: set RUN_EXPERIMENTAL_AGENT_CHAT=1; agent_chat is experimental explicit opt-in only",
+      "agent_chat blocked: set RUN_AGENT_CHAT=1; agent_chat is explicit opt-in and has no mutation authority",
     );
   }
 }

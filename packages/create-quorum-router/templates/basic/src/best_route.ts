@@ -22,6 +22,7 @@ import { buildTrace, score, writeTrace } from "./trace.ts";
 import { callWrapper } from "./wrapper_client.ts";
 import { preparePromptWithContext } from "./context.ts";
 import { selectCandidatesWithinBudget } from "./cost_aware.ts";
+import type { TaskCalibrationReport } from "./calibration.ts";
 
 function hasExplicitSelection(request: ProviderSelectionRequest): boolean {
   return Boolean(
@@ -180,6 +181,7 @@ async function discoverCandidates(authMode: ReturnType<typeof parseAuthMode>) {
 
 export async function invokeSelected(
   prompt: string,
+  calibration?: TaskCalibrationReport,
 ): Promise<
   { results: ProviderResult[]; tracePath: string; trace: DogfoodTrace }
 > {
@@ -188,7 +190,7 @@ export async function invokeSelected(
   const { request, candidates } = await discoverCandidates(authMode);
   if (candidates.length === 0) {
     throw new Error(
-      "OAuth/session-first provider unavailable. No usable OAuth/session/wrapper provider is available yet. Next: deno task auth:login",
+      "OAuth/session-first provider unavailable. No discovered provider has passed live authentication yet. Next: deno task auth:login",
     );
   }
   const prepared = await preparePromptWithContext(prompt);
@@ -250,6 +252,7 @@ export async function invokeSelected(
     requestedModel: request.model,
     providerSelectionHonored: selectionHonored(request, result),
     fallbackUsed: selectedIndex > 0 || selected.source === "env_fallback",
+    calibration,
   });
   const tracePath = await writeTrace("route-once-trace", trace);
   return { results: [result], tracePath, trace };
@@ -257,6 +260,7 @@ export async function invokeSelected(
 
 export async function runBestRoute(
   prompt: string,
+  calibration?: TaskCalibrationReport,
 ): Promise<
   { results: ProviderResult[]; tracePath: string; trace: DogfoodTrace }
 > {
@@ -270,7 +274,7 @@ export async function runBestRoute(
   const candidates = costAwareDecision.candidates;
   if (candidates.length === 0) {
     throw new Error(
-      "OAuth/session-first provider unavailable. best-route has no usable OAuth/session/wrapper provider yet. Next: deno task auth:login",
+      "OAuth/session-first provider unavailable. best-route has no provider with verified live authentication yet. Next: deno task auth:login",
     );
   }
   const prepared = await preparePromptWithContext(prompt);
@@ -325,6 +329,7 @@ export async function runBestRoute(
     costAware: costAwareDecision.cost.enabled
       ? costAwareDecision.cost
       : undefined,
+    calibration,
   });
   const tracePath = await writeTrace("best-route-trace", trace);
   return { results, tracePath, trace };

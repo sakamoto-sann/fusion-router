@@ -19,7 +19,7 @@ deno task auth:status
 deno task health
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task route:once --prompt "Review this README for risky claims."
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task best-route --prompt "Choose the safest launch copy."
-RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_EXPERIMENTAL_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
+RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
 ```
 
 ## Auth priority
@@ -62,7 +62,8 @@ session files, `.env` contents, or credential-bearing config.
 - `deno task smoke` elsewhere remains fixture-only; it is not real provider
   dogfood.
 - Best Route/direct remains the production-ready best-answer routing path.
-- `agent_chat` remains experimental explicit opt-in only.
-- No production autonomous runtime is claimed.
+- `agent_chat` remains explicit opt-in and has no mutation authority.
+- SafeLoop-backed mutation requires separate execution configuration and
+  operator approval.
 - No live Supabase Agent Bus runtime writes are made.
 - No service-role runtime exists.

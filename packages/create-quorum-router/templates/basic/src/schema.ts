@@ -168,6 +168,23 @@ export type CostAwareTrace = {
   }>;
 };
 
+export type CalibrationTraceSummary = {
+  schema_version: "quorum-router.calibration-trace.v1";
+  advisory_only: true;
+  minimum_sample_count: number;
+  group_count: number;
+  groups: Array<{
+    task_type_sha256: string;
+    source_sha256: string;
+    sample_count: number;
+    accuracy: number;
+    mean_confidence: number;
+    brier_score: number;
+    mean_calibration_bias: number;
+    sample_status: "insufficient" | "sufficient";
+  }>;
+};
+
 export type DogfoodTrace = {
   run_id: string;
   timestamp: string;
@@ -186,6 +203,7 @@ export type DogfoodTrace = {
   prompt_summary?: string;
   prompt_context?: PromptContextTrace;
   cost_aware?: CostAwareTrace;
+  calibration?: CalibrationTraceSummary;
   response_summary?: string;
   schema_valid: boolean;
   redaction_ok: boolean;
@@ -217,9 +235,12 @@ export function assertOptIn(): void {
 }
 
 export function assertAgentChatOptIn(): void {
-  if (Deno.env.get("RUN_EXPERIMENTAL_AGENT_CHAT") !== "1") {
+  if (
+    Deno.env.get("RUN_AGENT_CHAT") !== "1" &&
+    Deno.env.get("RUN_EXPERIMENTAL_AGENT_CHAT") !== "1"
+  ) {
     throw new Error(
-      "agent_chat blocked: set RUN_EXPERIMENTAL_AGENT_CHAT=1; live multi-model dialogue is explicit opt-in",
+      "agent_chat blocked: set RUN_AGENT_CHAT=1; live multi-model dialogue is explicit opt-in and has no mutation authority",
     );
   }
 }

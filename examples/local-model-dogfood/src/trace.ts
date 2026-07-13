@@ -10,12 +10,12 @@ export const OUT_DIR = "../../out/dogfood/local-model-dogfood";
 
 export function boundaries(agentChat = false): string[] {
   return [
-    "NPX is not the goal; local real-model dogfood is required before launch",
+    "fixture smoke does not replace local real-model readiness verification",
     "deno task smoke is fixture-only and not real provider dogfood",
     "Best Route/direct remains production-ready best-answer routing",
     agentChat
-      ? "agent_chat experimental explicit opt-in only"
-      : "agent_chat remains experimental explicit opt-in only",
+      ? "agent_chat is explicit opt-in and has no mutation authority"
+      : "agent_chat remains explicit opt-in and separate from direct routing",
     "SafeLoop-backed production repository execution requires explicit external configuration and distinct approval",
     "no live Supabase Agent Bus runtime writes",
     "no service-role runtime",

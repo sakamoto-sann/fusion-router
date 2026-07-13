@@ -36,6 +36,24 @@ jobs:
       - name: Test
         run: deno task test
 
+      - name: Checkout pinned SafeLoop execution authority
+        uses: actions/checkout@v4
+        with:
+          repository: clawdia-saka/safeloop
+          ref: 7fd558459610dbc5c6f1a467a30e0a939410308d
+          path: .safeloop-source
+
+      - name: Install pinned SafeLoop execution authority
+        run: |
+          python3 -m pip install --disable-pip-version-check --user uv==0.7.21
+          "$HOME/.local/bin/uv" sync --directory .safeloop-source --extra dev
+
+      - name: Real SafeLoop production execution E2E
+        env:
+          SAFELOOP_E2E_BINARY: ${{ github.workspace }}/.safeloop-source/.venv/bin/safeloop
+          SAFELOOP_E2E_REQUIRED: "1"
+        run: deno test -A --filter='real SafeLoop execute-request E2E' router_test.ts
+
       - name: Doctor
         run: deno task doctor
 

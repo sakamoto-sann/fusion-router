@@ -1111,6 +1111,69 @@ Deno.test("routeWithDecisionReport preserves route output and reports observed c
   });
 });
 
+Deno.test("direct routing aggregates caller-attested calibration into the decision report", async () => {
+  const adapter = new CountingAdapter();
+  const router = buildRouter(adapter, staticOkSynthesis());
+  const envelope = await router.routeWithDecisionReport("hello", {
+    calibration: {
+      observations: [{
+        observation_id: "obs-1",
+        task_type: "code-review",
+        source: { provider: "Fixture", model: "counting" },
+        evaluation_basis: "caller_attested_external_ground_truth",
+        correct: true,
+        confidence: 0.8,
+        evaluated_at: "2026-07-13T00:00:00Z",
+      }],
+      options: { minimum_sample_count: 2 },
+    },
+  });
+
+  assertEquals(adapter.calls, 1);
+  assertEquals(envelope.decision_report.calibration, {
+    schema_version: "quorum-router.calibration-by-task.v1",
+    advisory_only: true,
+    minimum_sample_count: 2,
+    groups: [{
+      task_type: "code-review",
+      source: { provider: "Fixture", model: "counting" },
+      sample_count: 1,
+      accuracy: 1,
+      mean_confidence: 0.8,
+      brier_score: 0.04,
+      mean_calibration_bias: -0.2,
+      sample_status: "insufficient",
+    }],
+  });
+});
+
+Deno.test("invalid calibration evidence fails before provider invocation", async () => {
+  const adapter = new CountingAdapter();
+  const router = buildRouter(adapter, staticOkSynthesis());
+  const observation = {
+    observation_id: "duplicate",
+    task_type: "code-review",
+    source: { provider: "Fixture", model: "counting" },
+    evaluation_basis: "caller_attested_external_ground_truth",
+    correct: true,
+    confidence: 0.8,
+    evaluated_at: "2026-07-13T00:00:00Z",
+  };
+
+  const error = await assertRejects(
+    () =>
+      router.routeWithDecisionReport("hello", {
+        calibration: { observations: [observation, observation] },
+      }),
+    RouterError,
+  );
+  assertEquals(error.status, 4400);
+  assertEquals(error.code, "calibration_validation_failed");
+  assertEquals(error.message, "Calibration evidence failed validation.");
+  assertEquals(error.details, undefined);
+  assertEquals(adapter.calls, 0);
+});
+
 Deno.test("routeWithDecisionReport rejects spoofed adapter identity", async () => {
   const descriptor = {
     provider: "Fixture",
@@ -1523,7 +1586,7 @@ Deno.test("agent_chat route without explicit runtime opt-in fails closed before 
   assertEquals(runtime.adaptersByRole.get("commander")?.calls, 0);
 });
 
-Deno.test("agent_chat route with explicit opt-in succeeds through experimental AgentRuntime", async () => {
+Deno.test("conversation-only agent_chat route with explicit opt-in is labeled accurately", async () => {
   const adapter = new CountingAdapter();
   const runtime = makeAgentRuntimeConfig();
   const router = buildRouter(adapter, staticOkSynthesis(), {
@@ -1534,7 +1597,7 @@ Deno.test("agent_chat route with explicit opt-in succeeds through experimental A
     experimentalAgentRuntime: true,
   });
   assertEquals(result.synthesis, "Runtime final answer.");
-  assertEquals(result.consensusModel, "AgentRuntime/experimental");
+  assertEquals(result.consensusModel, "AgentRuntime/conversation-only");
   assertEquals(adapter.calls, 0);
   assertEquals(runtime.adaptersByRole.get("commander")?.calls, 1);
 });
@@ -1773,7 +1836,13 @@ Deno.test({
   sanitizeResources: false,
   fn: async () => {
     const safeloopBinary = Deno.env.get("SAFELOOP_E2E_BINARY");
-    if (!safeloopBinary) return;
+    if (!safeloopBinary) {
+      assert(
+        Deno.env.get("SAFELOOP_E2E_REQUIRED") !== "1",
+        "SAFELOOP_E2E_BINARY is required when SAFELOOP_E2E_REQUIRED=1",
+      );
+      return;
+    }
     const base = await Deno.realPath(
       await Deno.makeTempDir({ prefix: "quorum-safeloop-e2e-" }),
     );
@@ -8022,6 +8091,7 @@ Deno.test("create-quorum-router package files and metadata are release-safe", as
     "packages/create-quorum-router/templates/basic/src/agent_chat.ts",
     "packages/create-quorum-router/templates/basic/src/calibration.ts",
     "packages/create-quorum-router/templates/basic/src/calibration_demo.ts",
+    "packages/create-quorum-router/templates/basic/src/calibration_route.ts",
     "packages/create-quorum-router/templates/basic/src/context.ts",
     "packages/create-quorum-router/templates/basic/src/trace.ts",
     "packages/create-quorum-router/templates/basic/src/redact.ts",
@@ -8046,11 +8116,27 @@ Deno.test("create-quorum-router package files and metadata are release-safe", as
     }
   }
 
+  const inventorySource = await Deno.readTextFile(
+    "packages/create-quorum-router/templates/basic/src/model_inventory.ts",
+  );
+  assertStringIncludes(
+    inventorySource,
+    'entry.available ? "discovered" : "blocked"',
+  );
+  assertStringIncludes(
+    inventorySource,
+    "live authentication is not verified",
+  );
+  assert(
+    !inventorySource.includes('entry.available ? "ready" : "blocked"'),
+    "generated inventory must not equate command discovery with live readiness",
+  );
+
   const packageJson = await readJsonRecord(
     "packages/create-quorum-router/package.json",
   );
   assertEquals(packageJson.name, "create-quorum-router");
-  assertEquals(packageJson.version, "0.1.9");
+  assertEquals(packageJson.version, "0.1.10");
   assertEquals(packageJson.license, "MIT");
   const bin = packageJson.bin as Record<string, unknown>;
   assertEquals(bin["create-quorum-router"], "bin/create-quorum-router.js");
@@ -8492,6 +8578,19 @@ Deno.test("publish workflow isolates OIDC and pins external actions", async () =
   assert(!/uses:\s+[^\s#]+@(v\d+|main|master)\b/.test(workflow));
   const verifySection = workflow.split("  publish-create-quorum-router:")[0];
   assert(!verifySection.includes(`${oidcPermission}: write`));
+  assertStringIncludes(
+    verifySection,
+    "templates/basic/src/calibration_route.ts",
+  );
+  assertStringIncludes(
+    verifySection,
+    "7fd558459610dbc5c6f1a467a30e0a939410308d",
+  );
+  assertStringIncludes(verifySection, 'SAFELOOP_E2E_REQUIRED: "1"');
+  assertStringIncludes(
+    verifySection,
+    "real SafeLoop execute-request E2E",
+  );
   const publishSection = workflow.split("  publish-create-quorum-router:")[1];
   assert(publishSection);
   assert(!publishSection.includes("npm install"));
@@ -8539,6 +8638,7 @@ Deno.test("create-quorum-router npm tarball contents are constrained", async () 
     "templates/basic/src/best_route.ts",
     "templates/basic/src/calibration.ts",
     "templates/basic/src/calibration_demo.ts",
+    "templates/basic/src/calibration_route.ts",
     "templates/basic/src/cli.ts",
     "templates/basic/src/context.ts",
     "templates/basic/src/cost_aware.ts",
@@ -8702,7 +8802,7 @@ Deno.test("create-quorum-router docs state license and runtime boundaries", asyn
   assertStringIncludes(templateReadme, "No service-role runtime");
   assertStringIncludes(templateReadme, "BYO Supabase audit is disabled");
   assertStringIncludes(templateReadme, "deno task supabase:status");
-  assertStringIncludes(templateReadme, "v0.1.9");
+  assertStringIncludes(templateReadme, "v0.1.10");
   assertStringIncludes(templateReadme, "deno task calibration:demo");
   assertStringIncludes(templateReadme, "advisory-only");
   assertStringIncludes(templateReadme, "deno --version");
@@ -8774,7 +8874,7 @@ Deno.test("create-quorum-router CLI is static safe and functional", async () => 
     stderr: "piped",
   }).output();
   assertEquals(version.code, 0);
-  assertEquals(new TextDecoder().decode(version.stdout).trim(), "0.1.9");
+  assertEquals(new TextDecoder().decode(version.stdout).trim(), "0.1.10");
 
   const tempDir = await Deno.makeTempDir();
   try {
@@ -8785,6 +8885,11 @@ Deno.test("create-quorum-router CLI is static safe and functional", async () => 
       stderr: "piped",
     }).output();
     assertEquals(create.code, 0);
+    const createOutput = new TextDecoder().decode(create.stdout);
+    assertStringIncludes(createOutput, "RUN_AGENT_CHAT=1");
+    assert(!createOutput.includes("RUN_EXPERIMENTAL_AGENT_CHAT"));
+    const obsoleteReadinessClaim = ["usable", "OAuth/session"].join(" ");
+    assert(!createOutput.includes(obsoleteReadinessClaim));
     for (
       const file of [
         ".gitignore",
@@ -8810,6 +8915,7 @@ Deno.test("create-quorum-router CLI is static safe and functional", async () => 
         "src/agent_chat.ts",
         "src/calibration.ts",
         "src/calibration_demo.ts",
+        "src/calibration_route.ts",
         "src/trace.ts",
         "src/redact.ts",
         "src/schema.ts",
@@ -9023,7 +9129,7 @@ Deno.test("create-quorum-router CLI is static safe and functional", async () => 
       "OAuth/session-first provider unavailable",
     );
 
-    const agentChatWithoutExperimental = await new Deno.Command("deno", {
+    const agentChatWithoutOptIn = await new Deno.Command("deno", {
       args: ["task", "agent-chat", "--prompt", "hello"],
       cwd: `${tempDir}/demo`,
       clearEnv: true,
@@ -9032,10 +9138,10 @@ Deno.test("create-quorum-router CLI is static safe and functional", async () => 
       stderr: "piped",
     }).output();
     const agentChatOutput =
-      new TextDecoder().decode(agentChatWithoutExperimental.stdout) +
-      new TextDecoder().decode(agentChatWithoutExperimental.stderr);
-    assert(agentChatWithoutExperimental.code !== 0);
-    assertStringIncludes(agentChatOutput, "RUN_EXPERIMENTAL_AGENT_CHAT=1");
+      new TextDecoder().decode(agentChatWithoutOptIn.stdout) +
+      new TextDecoder().decode(agentChatWithoutOptIn.stderr);
+    assert(agentChatWithoutOptIn.code !== 0);
+    assertStringIncludes(agentChatOutput, "RUN_AGENT_CHAT=1");
 
     const exampleConfig = await Deno.readTextFile(
       `${tempDir}/demo/router.config.example.json`,
@@ -9237,6 +9343,80 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
       RUN_EXTERNAL_MODEL_DOGFOOD: "1",
       QUORUM_ROUTER_AUTH_MODE: "wrapper",
     };
+    await Deno.remove(`${tempDir}/grok-args.txt`).catch(() => {});
+    const missingCalibrationPathRoute = await new Deno.Command("deno", {
+      args: [
+        "task",
+        "route:once",
+        "--prompt",
+        "must not reach provider",
+        "--calibration-evidence",
+      ],
+      cwd: `${tempDir}/demo`,
+      clearEnv: true,
+      env: baseEnv,
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    const missingCalibrationOutput =
+      new TextDecoder().decode(missingCalibrationPathRoute.stdout) +
+      new TextDecoder().decode(missingCalibrationPathRoute.stderr);
+    assert(missingCalibrationPathRoute.code !== 0);
+    assertStringIncludes(
+      missingCalibrationOutput,
+      "--calibration-evidence requires a local JSON file path",
+    );
+    await assertRejects(() => Deno.stat(`${tempDir}/grok-args.txt`));
+    await assertRejects(() => Deno.stat(`${tempDir}/codex-called.txt`));
+
+    const calibrationEvidencePath = `${tempDir}/calibration-evidence.json`;
+    await Deno.writeTextFile(
+      calibrationEvidencePath,
+      JSON.stringify({
+        observations: [{
+          observation_id: "route-eval-1",
+          task_type: "private-route-evaluation",
+          source: { provider: "PrivateEvaluator", model: "private-model" },
+          evaluation_basis: "caller_attested_external_ground_truth",
+          correct: true,
+          confidence: 0.8,
+          evaluated_at: "2026-07-13T00:00:00Z",
+        }],
+      }),
+    );
+    const invalidCalibrationPath =
+      `${tempDir}/invalid-calibration-evidence.json`;
+    const calibrationDocument = JSON.parse(
+      await Deno.readTextFile(calibrationEvidencePath),
+    ) as { observations: unknown[] };
+    await Deno.writeTextFile(
+      invalidCalibrationPath,
+      JSON.stringify({
+        observations: [
+          calibrationDocument.observations[0],
+          calibrationDocument.observations[0],
+        ],
+      }),
+    );
+    await Deno.remove(`${tempDir}/grok-args.txt`).catch(() => {});
+    const invalidCalibrationRoute = await new Deno.Command("deno", {
+      args: [
+        "task",
+        "route:once",
+        "--prompt",
+        "must not reach provider",
+        "--calibration-evidence",
+        invalidCalibrationPath,
+      ],
+      cwd: `${tempDir}/demo`,
+      clearEnv: true,
+      env: baseEnv,
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
+    assert(invalidCalibrationRoute.code !== 0);
+    await assertRejects(() => Deno.stat(`${tempDir}/grok-args.txt`));
+    await assertRejects(() => Deno.stat(`${tempDir}/codex-called.txt`));
 
     await Deno.remove(`${tempDir}/grok-args.txt`).catch(() => {});
     const autoRoute = await new Deno.Command("deno", {
@@ -9245,6 +9425,8 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
         "route:once",
         "--prompt",
         "auto route should prefer list verified grok",
+        "--calibration-evidence",
+        calibrationEvidencePath,
       ],
       cwd: `${tempDir}/demo`,
       clearEnv: true,
@@ -9263,6 +9445,29 @@ Deno.test("generated route:once honors forced Grok provider/model and rejects no
     );
     assertStringIncludes(autoRouteArgs, "--prompt-file");
     await assertRejects(() => Deno.stat(`${tempDir}/codex-called.txt`));
+    const calibratedTrace = JSON.parse(
+      await Deno.readTextFile(`${tempDir}/demo/out/route-once-trace.json`),
+    ) as {
+      selected_provider?: string;
+      calibration?: {
+        group_count?: number;
+        groups?: Array<Record<string, unknown>>;
+      };
+    };
+    assertEquals(calibratedTrace.selected_provider, "xAI");
+    assertEquals(calibratedTrace.calibration?.group_count, 1);
+    assertEquals(
+      JSON.stringify(calibratedTrace).includes("private-route-evaluation"),
+      false,
+    );
+    assertEquals(
+      JSON.stringify(calibratedTrace).includes("PrivateEvaluator"),
+      false,
+    );
+    assertEquals(
+      typeof calibratedTrace.calibration?.groups?.[0].task_type_sha256,
+      "string",
+    );
 
     const fallbackRoute = await new Deno.Command("deno", {
       args: [
@@ -9732,9 +9937,9 @@ Deno.test("install helper is dry-run safe and avoids credential/runtime setup", 
   );
   assertStringIncludes(
     new TextDecoder().decode(defaultDryRun.stdout),
-    "ref:    v0.1.9",
+    "ref:    v0.1.10",
   );
-  assertStringIncludes(script, "--ref v0.1.9");
+  assertStringIncludes(script, "--ref v0.1.10");
 
   const tempDir = await Deno.makeTempDir();
   try {
@@ -9811,14 +10016,14 @@ Deno.test("README and install docs expose the npm quickstart without hardcoded t
   assertStringIncludes(normalizedMainReadme, "MIT-licensed open source");
 
   const release = await Deno.readTextFile("docs/release-v0.1.2.md");
-  const checklist = await Deno.readTextFile("docs/release-checklist-v0.1.2.md");
+  const checklist = await Deno.readTextFile("docs/release-runbook.md");
   assertStringIncludes(
     release,
     "includes npm create package scaffold and install helper scripts",
   );
   assertStringIncludes(
-    checklist,
-    "Published `v0.1.2` tag points at that exact commit",
+    checklist.replace(/\s+/g, " "),
+    "Tag and GitHub Release point at the intended commit",
   );
   assertNoExactTargetSha([readme, release, checklist].join("\n"));
 });

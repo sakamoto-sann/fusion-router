@@ -17,6 +17,7 @@ import {
   runSupabaseStatus,
 } from "./supabase.ts";
 import { buildTrace, writeTrace } from "./trace.ts";
+import { loadCalibrationEvidence } from "./calibration_route.ts";
 
 const DEFAULT_PROMPT = "Review this README for risky claims.";
 
@@ -61,6 +62,21 @@ function promptFromArgs(): string {
   return DEFAULT_PROMPT;
 }
 
+async function calibrationFromArgs() {
+  const indices = Deno.args.flatMap((arg, index) =>
+    arg === "--calibration-evidence" ? [index] : []
+  );
+  if (indices.length === 0) return await loadCalibrationEvidence(undefined);
+  if (indices.length !== 1) {
+    throw new Error("--calibration-evidence may be specified only once");
+  }
+  const path = Deno.args[indices[0] + 1];
+  if (path === undefined || path.startsWith("--")) {
+    throw new Error("--calibration-evidence requires a local JSON file path");
+  }
+  return await loadCalibrationEvidence(path);
+}
+
 async function runModelsList(): Promise<void> {
   const inventory = await inventoryCommand();
   console.log("QuorumRouter model inventory");
@@ -92,7 +108,8 @@ async function runHealth(): Promise<void> {
       )}`,
   );
   console.log(`Model inventory entries: ${inventory.entries.length}`);
-  console.log(`Usable providers: ${invokable.length}`);
+  console.log(`Discovered invokable providers: ${invokable.length}`);
+  console.log("Live provider authentication verified: false");
   console.log("Provider request sent: false");
   console.log(`Trace: ${tracePath}`);
   console.log(
@@ -110,9 +127,11 @@ try {
   else if (command === "health") await runHealth();
   else if (command === "supabase:status") await runSupabaseStatus();
   else if (command === "route:once") {
+    const calibration = await calibrationFromArgs();
     await preflightRequiredSupabaseAudit();
     const { results, tracePath, trace } = await invokeSelected(
       promptFromArgs(),
+      calibration,
     );
     await auditRouteOutcome(trace);
     console.log("QuorumRouter route:once");
@@ -126,8 +145,12 @@ try {
     console.log(`final: ${summarize(results[0].response_summary, 500)}`);
     console.log(`trace: ${tracePath}`);
   } else if (command === "best-route") {
+    const calibration = await calibrationFromArgs();
     await preflightRequiredSupabaseAudit();
-    const { results, tracePath, trace } = await runBestRoute(promptFromArgs());
+    const { results, tracePath, trace } = await runBestRoute(
+      promptFromArgs(),
+      calibration,
+    );
     await auditRouteOutcome(trace);
     console.log("QuorumRouter best-route");
     console.log(`models_called: ${results.length}`);

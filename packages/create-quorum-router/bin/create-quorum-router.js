@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const VERSION = "0.1.9";
+const VERSION = "0.1.10";
 const SUPPORTED_TEMPLATES = new Set(["basic"]);
 
 function usage() {
@@ -150,7 +150,7 @@ function main() {
     console.log("Then verify with: deno --version");
   }
   console.log(
-    "  # Optional one-shot real provider dogfood after intake reports a usable OAuth/session/wrapper provider:",
+    "  # Optional one-shot real provider dogfood after live probe verifies authentication:",
   );
   console.log(
     '  RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task route:once --prompt "Review this README for risky claims."',
@@ -163,7 +163,7 @@ function main() {
     "  # Optional conversation-only Agent Chat stays explicit opt-in:",
   );
   console.log(
-    '  RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_EXPERIMENTAL_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."',
+    '  RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."',
   );
   console.log("");
   console.log(

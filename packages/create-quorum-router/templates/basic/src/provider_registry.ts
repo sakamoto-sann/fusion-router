@@ -61,7 +61,6 @@ export function providerAliasesForCommand(
     claude: ["anthropic", "claude", "claude-code"],
     gemini: ["google", "gemini", "gemini-cli"],
     devin: ["cognition", "devin", "devin-cli"],
-    qwen: ["alibaba", "qwen", "qwen-cli"],
   };
   const providerAliases: Record<string, string[]> = {
     xai: ["grok", "grok-cli", "xai", "xai-cli"],
@@ -69,7 +68,6 @@ export function providerAliasesForCommand(
     anthropic: ["anthropic", "claude", "claude-code"],
     google: ["google", "gemini", "gemini-cli"],
     cognition: ["cognition", "devin", "devin-cli"],
-    alibaba: ["alibaba", "qwen", "qwen-cli"],
   };
   const normalizedProvider = normalizeSelectionValue(provider);
   return aliasSet([
@@ -219,19 +217,6 @@ export const LOCAL_PROVIDER_SPECS: ProviderSpec[] = [
     list_blocked_reason:
       "Devin CLI does not expose a models subcommand in this environment.",
     notes: ["Uses existing Devin CLI session."],
-  },
-  {
-    provider: "Alibaba",
-    model: "qwen-cli",
-    model_id: "alibaba/qwen-cli",
-    auth_mode: "session",
-    source: "local_cli",
-    command: "qwen",
-    args_template: ["-p", ""],
-    prompt_transport: "stdin",
-    list_blocked_reason:
-      "Qwen CLI model listing path is stdin/API-key dependent in this environment.",
-    notes: ["Uses existing local Qwen CLI session."],
   },
 ];
 

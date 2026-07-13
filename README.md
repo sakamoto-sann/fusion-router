@@ -26,8 +26,13 @@ deno task models -- list
 cd examples/local-model-dogfood
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task route:once --prompt "Review this README for risky claims."
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task best-route --prompt "Choose the safest launch copy."
-RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_EXPERIMENTAL_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
+RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
 ```
+
+`route:once` and `best-route` accept
+`--calibration-evidence ./calibration-evidence.json`; caller evidence is
+validated before provider invocation and the advisory aggregate is included in
+the route trace with task/source identifiers hashed.
 
 Best Route/direct remains the production best-answer path. Conversation-only
 Agent Chat is explicit opt-in. SafeLoop-backed Agent Chat provides a bounded
@@ -72,7 +77,7 @@ safely tries the next candidate; fewer than two working identities fails closed.
 
 ```bash
 RUN_EXTERNAL_MODEL_DOGFOOD=1 \
-RUN_EXPERIMENTAL_AGENT_CHAT=1 \
+RUN_AGENT_CHAT=1 \
 QUORUM_ROUTER_AGENT_CHAT_MAX_TURNS=6 \
   deno task agent-chat --prompt "Debate the safest migration plan"
 ```
@@ -147,10 +152,9 @@ deno task smoke:v0.1
 ## Links
 
 - npm installer: `npx --yes create-quorum-router@latest`
-- release: https://github.com/sakamoto-sann/quorum-router/releases/tag/v0.1.9
+- release: https://github.com/sakamoto-sann/quorum-router/releases/tag/v0.1.10
 - launch assets: [docs/launch/](docs/launch/)
-- internal dogfood QA:
-  [docs/dogfood/manual-qa-runbook.md](docs/dogfood/manual-qa-runbook.md)
+- release verification: [docs/release-runbook.md](docs/release-runbook.md)
 - Hermes Agent on-demand integration:
   [integrations/hermes/](integrations/hermes/)
 - examples: [examples/](examples/)

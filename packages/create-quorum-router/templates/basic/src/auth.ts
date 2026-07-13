@@ -18,9 +18,11 @@ export async function runAuthStatus(): Promise<void> {
   console.log("Credential values printed: false");
   console.log(`Env fallback configured: ${envFallbackConfigured()}`);
   printInventoryTable(inventory);
-  const usableEntries = invokableEntries(inventory);
-  if (usableEntries.length === 0) {
-    console.log("Status: missing usable OAuth/session/wrapper provider");
+  const invokable = invokableEntries(inventory);
+  if (invokable.length === 0) {
+    console.log(
+      "Status: no invokable OAuth/session/wrapper provider discovered",
+    );
     console.log("Next action: deno task auth:login");
   } else if (authMode === "env") {
     console.log("Status: explicit private env fallback is configured");
@@ -29,7 +31,7 @@ export async function runAuthStatus(): Promise<void> {
     );
   } else {
     console.log(
-      "Status: at least one OAuth/session/wrapper provider appears usable",
+      "Status: at least one provider command is invokable; live authentication is not verified by auth:status",
     );
     console.log(
       'Next action: RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task route:once --prompt "Review this README for risky claims."',

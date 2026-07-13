@@ -17,7 +17,7 @@ deno task intake
 deno task supabase:status
 ```
 
-Current package version: `create-quorum-router@0.1.9`. Releases are published
+Current package version: `create-quorum-router@0.1.10`. Releases are published
 from an immutable Git tag through GitHub Actions OIDC Trusted Publishing.
 
 ## What the generated project supports
@@ -56,8 +56,14 @@ RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task route:once --prompt "https://github.com/s
 # GitHub URL prompts fetch bounded repository context before invoking the selected provider.
 # Only use this with repositories you are allowed to send to that provider.
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task best-route --prompt "Choose the safest launch copy."
-RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_EXPERIMENTAL_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
+RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
 ```
+
+`route:once` and `best-route` also accept
+`--calibration-evidence ./calibration-evidence.json`. The generated CLI
+caller-attested outcomes before invoking providers and stores the advisory
+metrics with hashed task/source identifiers in the route trace without changing
+routing authority.
 
 `auth:login` does not ask for API keys as the primary path. If OAuth/browser
 login is not wired in the generated scaffold, it fails closed and tells the user

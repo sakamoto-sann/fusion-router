@@ -1,12 +1,14 @@
 import type {
   AgentChatTurn,
   AuthMode,
+  CalibrationTraceSummary,
   CostAwareTrace,
   DogfoodTrace,
   PromptContextTrace,
   ProviderResult,
   ScoreRow,
 } from "./schema.ts";
+import type { TaskCalibrationReport } from "./calibration.ts";
 import { redactionOk, summarize } from "./redact.ts";
 
 export const OUT_DIR = "out";
@@ -33,6 +35,29 @@ export async function promptHash(prompt: string): Promise<string> {
   return Array.from(new Uint8Array(bytes)).map((b) =>
     b.toString(16).padStart(2, "0")
   ).join("");
+}
+
+async function calibrationTraceSummary(
+  report: TaskCalibrationReport,
+): Promise<CalibrationTraceSummary> {
+  return {
+    schema_version: "quorum-router.calibration-trace.v1",
+    advisory_only: true,
+    minimum_sample_count: report.minimum_sample_count,
+    group_count: report.groups.length,
+    groups: await Promise.all(report.groups.map(async (group) => ({
+      task_type_sha256: await promptHash(group.task_type),
+      source_sha256: await promptHash(
+        `${group.source.provider}\u0000${group.source.model}`,
+      ),
+      sample_count: group.sample_count,
+      accuracy: group.accuracy,
+      mean_confidence: group.mean_confidence,
+      brier_score: group.brier_score,
+      mean_calibration_bias: group.mean_calibration_bias,
+      sample_status: group.sample_status,
+    }))),
+  };
 }
 
 export function score(result: ProviderResult): ScoreRow {
@@ -77,7 +102,11 @@ export async function buildTrace(args: {
   fallbackUsed?: boolean;
   costAware?: CostAwareTrace;
   agentChatTurns?: AgentChatTurn[];
+  calibration?: TaskCalibrationReport;
 }): Promise<DogfoodTrace> {
+  const calibration = args.calibration
+    ? await calibrationTraceSummary(args.calibration)
+    : undefined;
   const responseSummary = args.results?.map((r) =>
     `[${r.provider}/${r.model}] ${r.response_summary}`
   ).join("\n");
@@ -96,6 +125,7 @@ export async function buildTrace(args: {
     provider_selection_honored: args.providerSelectionHonored ?? true,
     fallback_used: args.fallbackUsed ?? false,
     cost_aware: args.costAware,
+    ...(calibration ? { calibration } : {}),
     prompt_hash: args.prompt ? await promptHash(args.prompt) : undefined,
     prompt_summary: args.prompt ? summarize(args.prompt, 160) : undefined,
     prompt_context: args.promptContext,

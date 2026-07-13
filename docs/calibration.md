@@ -1,9 +1,11 @@
 # Calibration by task type
 
-QuorumRouter exposes a pure, additive API for summarizing externally evaluated
-confidence observations by explicit `task_type` and provider/model source.
-Calibration reports are advisory diagnostics only. The router does not consume
-them and they carry no routing or execution authority.
+QuorumRouter exposes a strict aggregation API for summarizing externally
+evaluated confidence observations by explicit `task_type` and provider/model
+source. Direct routing can consume caller-supplied observations before provider
+invocation and attach the resulting advisory report to its Decision Report.
+Calibration never silently changes candidate eligibility, rank, quorum, budget,
+or execution authority.
 
 ## Truth boundary
 
@@ -34,13 +36,13 @@ trimmed, normalized to Unicode NFC, limited to 256 characters, and reject
 control or Unicode default-ignorable characters. Timestamps require a valid RFC
 3339 UTC offset.
 
-This pure aggregation API performs no evaluator authentication, policy-version
-verification, invocation binding, durable replay protection, or cross-call
-deduplication. Callers that need those guarantees must establish them before
-calling this function. `observation_id` uniqueness is enforced only within one
-call. Callers must also provide canonical task taxonomy and immutable model
-revision identifiers when results must remain comparable; NFC normalization does
-not resolve aliases or Unicode confusables.
+The pure aggregation function performs no evaluator authentication,
+policy-version verification, invocation binding, durable replay protection, or
+cross-call deduplication. Callers that need those guarantees must establish them
+before calling this function. `observation_id` uniqueness is enforced only
+within one call. Callers must also provide canonical task taxonomy and immutable
+model revision identifiers when results must remain comparable; NFC
+normalization does not resolve aliases or Unicode confusables.
 
 One call accepts at most 10,000 observations. `minimum_sample_count` must be a
 positive integer no greater than that limit. Large datasets should be bounded
@@ -75,6 +77,36 @@ const report = aggregateTaskCalibration([
   },
 ], { minimum_sample_count: 2 });
 ```
+
+## Direct routing integration
+
+```ts
+const envelope = await router.routeWithDecisionReport("review this change", {
+  calibration: {
+    observations,
+    options: { minimum_sample_count: 20 },
+  },
+});
+
+console.log(envelope.decision_report.calibration);
+```
+
+The observations are validated and aggregated before any provider adapter is
+invoked. Invalid or duplicate evidence fails closed. The report remains marked
+`advisory_only: true` and is included on success and direct-routing failure
+reports; it is not a hidden routing weight.
+
+Generated NPX workspaces expose the same path for `route:once` and `best-route`:
+
+```bash
+deno task route:once --prompt "Review this change" \
+  --calibration-evidence ./calibration-evidence.json
+```
+
+The local JSON file contains `{ "observations": [...], "options": {...} }`. The
+generated CLI reads and validates it before provider discovery or invocation and
+stores advisory metrics with SHA-256 task/source identifiers in the redacted
+route trace. Raw task, provider, and model labels are not persisted there.
 
 The example group has `sample_count: 2`, `accuracy: 0.5`,
 `mean_confidence: 0.7`, `brier_score: 0.2`, and `mean_calibration_bias: 0.2`.

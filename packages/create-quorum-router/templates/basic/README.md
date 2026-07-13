@@ -1,7 +1,7 @@
 # QuorumRouter generated workspace
 
 This generated workspace contains the MIT-licensed QuorumRouter current release.
-npm latest targets v0.1.9.
+npm latest targets v0.1.10.
 
 QuorumRouter is **MIT**. It is **open source**. Commercial and production use
 are permitted under the MIT License.
@@ -94,20 +94,24 @@ enabled by this audit integration.
 
 ## Real provider dogfood commands
 
-Run only after `intake` reports a usable OAuth/session/wrapper provider:
+Run only after a live probe verifies provider authentication:
 
 ```bash
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task route:once --prompt "Review this README for risky claims."
 RUN_EXTERNAL_MODEL_DOGFOOD=1 deno task best-route --prompt "Choose the safest launch copy."
-RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_EXPERIMENTAL_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
+RUN_EXTERNAL_MODEL_DOGFOOD=1 RUN_AGENT_CHAT=1 deno task agent-chat --prompt "Review this launch plan."
 ```
 
 Behavior:
 
 - `route:once` requires `RUN_EXTERNAL_MODEL_DOGFOOD=1`.
 - `best-route` requires `RUN_EXTERNAL_MODEL_DOGFOOD=1`.
+- `route:once` and `best-route` accept
+  `--calibration-evidence ./calibration-evidence.json`; evidence is validated
+  before provider invocation. The trace stores advisory metrics with hashed task
+  and source identifiers, not raw labels.
 - `agent-chat` requires both `RUN_EXTERNAL_MODEL_DOGFOOD=1` and
-  `RUN_EXPERIMENTAL_AGENT_CHAT=1`.
+  `RUN_AGENT_CHAT=1`.
 - Live Agent Chat requires at least two distinct working provider/model
   identities. It passes the bounded transcript to alternating models, prints
   each response and `replying to` lineage as it arrives, and stores turns in
@@ -169,10 +173,9 @@ RUN_EXTERNAL_MODEL_DOGFOOD=1 \
 ```
 
 Supported provider aliases include `grok-cli`, `grok`, `xai`, `xAI`, `OpenAI`,
-`codex-cli`, `claude-code`, `gemini-cli`, `devin-cli`, and `qwen-cli`. Wrapper
-invocations use argv arrays, closed stdin, timeout guards, and sanitized
-stdout/stderr; CLI banners or auth/runtime errors are not accepted as valid
-model answers.
+`codex-cli`, `claude-code`, `gemini-cli`, and `devin-cli`. Wrapper invocations
+use argv arrays, closed stdin, timeout guards, and sanitized stdout/stderr; CLI
+banners or auth/runtime errors are not accepted as valid model answers.
 
 ## Auth and inventory
 

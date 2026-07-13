@@ -1,118 +1,63 @@
-# Positioning — QuorumRouter current release
+# QuorumRouter product positioning
 
-## Crisp positioning
+## Product
 
-QuorumRouter is an open-source routing/runtime framework for production-ready
-`direct` best-answer routing and read-only explicit agent routing.
+QuorumRouter is an MIT-licensed control plane for fail-closed multi-model
+routing and bounded agent execution.
 
-The current release message is:
+> Fail-closed routing and safe execution for AI agents.
 
-> Routing first, agents second.
+It separates four responsibilities:
 
-QuorumRouter makes the stable path a fail-closed best-answer router. Agent-style
-conversation is read-only; action execution is experimental and delegated to
-SafeLoop as the sole authority.
+1. **Provider readiness** — resolve explicit provider/model identities and
+   verify the configured auth and transport path.
+2. **Routing** — select eligible candidates under capability, readiness, and
+   optional budget constraints.
+3. **Model coordination** — run direct parallel synthesis, Best Route selection,
+   or explicit multi-turn Agent Chat.
+4. **Execution authority** — send approved repo/shell actions to SafeLoop, which
+   authorizes, executes, records, and verifies them.
 
-## Anti-positioning
+## Runtime status
 
-QuorumRouter current release is MIT-licensed open source.
+- Direct routing is the production fail-closed answer path.
+- Best Route invokes independent model candidates and selects or synthesizes a
+  result under explicit policy.
+- Agent Chat performs bounded multi-turn conversation across configured real
+  model wrappers.
+- AgentRuntime is production-capable for the verified local execution slice when
+  configured with SafeLoop's machine-readable execution authority, signed
+  policy, operator-isolated approval, bounded rounds, and verified receipts.
+- Conversation-only Agent Chat does not gain mutation authority and remains an
+  explicit opt-in mode.
+- Task calibration accepts caller-attested external correctness evidence. It is
+  diagnostic unless an explicit routing policy consumes it; it never silently
+  authorizes execution.
 
-It is not:
+## What QuorumRouter is not
 
-- a production autonomous agent runtime;
-- a full multi-agent production system;
-- a live Supabase Agent Bus runtime writer;
-- a service-role runtime;
-- a hosted SaaS/API product;
-- a generic “agent framework” that treats autonomy as the default.
+- It is not a hosted SaaS or central API service.
+- It does not use a shared service-role runtime or central Supabase data plane.
+- It does not treat CLI presence as proof of valid OAuth.
+- It does not turn malformed output, missing quorum, missing approval, or
+  missing execution evidence into a permissive fallback.
+- It does not claim every registered provider is authenticated in every local
+  environment; readiness is measured per provider and model.
 
-## Comparison framing against generic agent frameworks
-
-Generic agent frameworks often start from autonomous loops, tools, memory, and
-delegation.
-
-QuorumRouter starts one layer earlier:
-
-1. Which routing path is allowed?
-2. Which adapter outputs are valid?
-3. What happens when outputs are malformed or unsafe?
-4. Can the system synthesize a best answer without escalating to autonomous
-   behavior?
-5. If agent routing is requested, did the caller explicitly opt in?
-
-That makes `direct` the production-ready path. `agent_chat` remains
-launch-blocked until an end-to-end real SafeLoop repo-mutation smoke passes.
-
-## Comparison framing against prompt routers
-
-Prompt routers often focus on choosing a model or prompt path.
-
-QuorumRouter frames routing as a runtime safety boundary:
-
-- adapters return structured outputs;
-- validation is part of the route;
-- synthesis is explicit;
-- failures are fail-closed;
-- read-only conversation routing is gated, not implicit.
-
-The goal is not only “pick a model.” The goal is to make the route inspectable
-and bounded.
-
-## Launch narrative
-
-QuorumRouter current release is ready for external evaluation through the public
-NPX scaffold:
+## Public quickstart
 
 ```bash
 npx --yes create-quorum-router@latest my-quorum-router
 cd my-quorum-router
+deno task check
 deno task smoke
 ```
 
-The npm package is `create-quorum-router@0.1.9` (`latest -> 0.1.9`). Version
-`0.1.9` includes deterministic advisory task calibration in the core API and
-generated scaffold.
+Fixture smoke verifies the generated scaffold. Live provider readiness and
+SafeLoop execution are separate gates and must be exercised before making claims
+about a particular environment.
 
-The release is deliberately narrow: prove the public path, explain the safety
-boundaries, and give builders a readable generated demo.
+## License
 
-## “Routing first, agents second” explanation
-
-A routing framework should not require autonomous agents to be useful.
-
-In QuorumRouter:
-
-- `direct` handles production-ready best-answer routing.
-- `agent_chat` is available only as read-only explicit opt-in.
-- no hidden fallback turns an invalid route into an unsafe route.
-- no production autonomous runtime is claimed.
-
-The agent story is intentionally behind the routing story. That keeps the Public
-RC useful for builders who want reliable adapter routing today while preserving
-a clear path for future explicit agent experiments.
-
-## Safety boundary
-
-The current release safety boundary is:
-
-- `direct` remains the production-ready best-answer routing path.
-- Conversation-only `agent_chat` remains explicit opt-in.
-- SafeLoop-backed repo/shell mutation is supported only for the verified local
-  execution slice after approval/preflight capability and smoke gates pass.
-- SafeLoop-backed AgentRuntime production claims are limited to the verified
-  local repository execution slice with signed policy and distinct approval.
-- No live Supabase Agent Bus runtime writes.
-- No service-role runtime.
-- No full multi-agent production-system claim.
-- No hidden runtime expansion from the NPX scaffold.
-
-## License boundary
-
-QuorumRouter is MIT.
-
-This is an OSI-approved open source license.
-
-Commercial and production use are permitted under the MIT License.
-
-Use, modification, distribution, commercial use, and production use are
-permitted under MIT.
+QuorumRouter is open source under the MIT License. Commercial use, modification,
+distribution, and production use are permitted.

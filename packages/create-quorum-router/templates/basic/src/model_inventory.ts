@@ -46,7 +46,7 @@ export async function inventoryCommand(): Promise<ModelInventory> {
 export function printInventoryTable(inventory: ModelInventory): void {
   console.log("Provider        Status       Auth        Models");
   for (const entry of inventory.entries) {
-    const status = entry.available ? "ready" : "blocked";
+    const status = entry.available ? "discovered" : "blocked";
     const models = entry.listed_models?.length
       ? entry.listed_models.join(", ")
       : entry.model;
@@ -56,4 +56,7 @@ export function printInventoryTable(inventory: ModelInventory): void {
       } ${models}`,
     );
   }
+  console.log(
+    "Status note: discovered means command/config present; live authentication is not verified.",
+  );
 }
