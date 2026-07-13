@@ -86,5 +86,5 @@ external evaluation.
 The separate [calibration API](calibration.md) aggregates only explicit,
 externally evaluated observations. Its per-task, per-source metrics are advisory
 diagnostics: they do not change routing weights, ranks, eligibility, or
-execution behavior. The external-ground-truth marker is an unverified caller
+execution behavior. The caller-attested-ground-truth marker is an unverified
 provenance assertion, not proof supplied by QuorumRouter.

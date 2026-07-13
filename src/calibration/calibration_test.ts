@@ -12,7 +12,7 @@ function observation(overrides: Record<string, unknown> = {}) {
       provider: "OpenAI",
       model: "gpt-5",
     },
-    evaluation_basis: "external_ground_truth",
+    evaluation_basis: "caller_attested_external_ground_truth",
     correct: true,
     confidence: 0.8,
     evaluated_at: "2026-07-13T00:00:00Z",
@@ -26,6 +26,7 @@ Deno.test("task calibration rejects invalid and non-ground-truth observations", 
     observation({ task_type: "   " }),
     observation({ source: { provider: "", model: "gpt-5" } }),
     observation({ source: { provider: "OpenAI", model: "   " } }),
+    observation({ evaluation_basis: "external_ground_truth" }),
     observation({ evaluation_basis: "decision_report" }),
     observation({ correct: 1 }),
     observation({ confidence: -0.01 }),
@@ -123,10 +124,36 @@ Deno.test("task calibration computes exact transparent group metrics", () => {
       accuracy: 0.5,
       mean_confidence: 0.7,
       brier_score: 0.2,
-      calibration_gap: 0.2,
+      mean_calibration_bias: 0.2,
       sample_status: "sufficient",
     }],
   });
+});
+
+Deno.test("task calibration exposes signed mean bias rather than ECE", () => {
+  const result = aggregateTaskCalibration([
+    observation({
+      observation_id: "overconfident-error",
+      confidence: 1,
+      correct: false,
+    }),
+    observation({
+      observation_id: "underconfident-success",
+      confidence: 0,
+      correct: true,
+    }),
+  ], { minimum_sample_count: 1 });
+
+  assertEquals(result.groups[0].mean_calibration_bias, 0);
+  assertEquals(result.groups[0].brier_score, 1);
+  assertEquals("calibration_gap" in result.groups[0], false);
+  assertEquals("ece" in result.groups[0], false);
+});
+
+Deno.test("task calibration accepts empty input without inventing groups", () => {
+  const result = aggregateTaskCalibration([]);
+
+  assertEquals(result.groups, []);
 });
 
 Deno.test("task calibration defaults to 20 samples and marks small groups insufficient", () => {

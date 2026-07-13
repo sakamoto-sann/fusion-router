@@ -20,7 +20,7 @@ export const TaskCalibrationObservationSchema = z.object({
   observation_id: z.string().trim().min(1),
   task_type: z.string().trim().min(1),
   source: TaskCalibrationSourceSchema,
-  evaluation_basis: z.literal("external_ground_truth"),
+  evaluation_basis: z.literal("caller_attested_external_ground_truth"),
   correct: z.boolean(),
   confidence: z.number().finite().min(0).max(1),
   evaluated_at: z.string().datetime({ offset: true }),
@@ -53,7 +53,7 @@ export const TaskCalibrationGroupSchema = z.object({
   accuracy: z.number().finite().min(0).max(1),
   mean_confidence: z.number().finite().min(0).max(1),
   brier_score: z.number().finite().min(0).max(1),
-  calibration_gap: z.number().finite().min(-1).max(1),
+  mean_calibration_bias: z.number().finite().min(-1).max(1),
   // "sufficient" means only that the configured sample-count threshold is met.
   sample_status: z.enum(["insufficient", "sufficient"]),
 }).strict();
@@ -133,7 +133,7 @@ export function aggregateTaskCalibration(
       accuracy,
       mean_confidence,
       brier_score: stableMetric(brierTotal / sample_count),
-      calibration_gap: stableMetric(mean_confidence - accuracy),
+      mean_calibration_bias: stableMetric(mean_confidence - accuracy),
       sample_status: sample_count < minimum_sample_count
         ? "insufficient" as const
         : "sufficient" as const,

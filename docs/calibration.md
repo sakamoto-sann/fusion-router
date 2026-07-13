@@ -7,11 +7,12 @@ them and they carry no routing or execution authority.
 
 ## Truth boundary
 
-Every observation must declare `evaluation_basis: "external_ground_truth"`. The
-caller is responsible for supplying a correctness outcome produced by an
-evaluation outside QuorumRouter. Never derive `correct` from a Decision Report,
-consensus, a majority or minority position, disagreement, synthesis selection,
-or any other router behavior.
+Every observation must declare
+`evaluation_basis: "caller_attested_external_ground_truth"`. The caller is
+responsible for supplying a correctness outcome produced by an evaluation
+outside QuorumRouter. Never derive `correct` from a Decision Report, consensus,
+a majority or minority position, disagreement, synthesis selection, or any other
+router behavior.
 
 The literal is an **unverified caller-supplied provenance assertion**.
 QuorumRouter validates its shape but cannot establish that the evaluator is
@@ -21,14 +22,25 @@ sample is free from label leakage, repetition, correlation, or selection bias.
 `confidence` must be the model's probability, recorded **before the correctness
 label is observed**, that the specific evaluated answer is correct. Evaluator
 confidence, generic confidence about completing the task, or a score assigned
-after seeing the label makes the Brier score and calibration gap
+after seeing the label makes the Brier score and mean calibration bias
 uninterpretable. The schema enforces only that the number is finite and within
 `[0, 1]`; it cannot verify the score's timing or provenance.
 
 The strict observation schema accepts only an ID, task type, provider/model
-source, the external-ground-truth literal, binary correctness, confidence, and
-evaluation timestamp. Prompts, responses, credentials, and freeform content are
-not schema fields and are rejected.
+source, the caller-attested-ground-truth literal, binary correctness,
+confidence, and evaluation timestamp. Prompts, responses, credentials, and
+freeform content are not schema fields and are rejected.
+
+This pure aggregation API performs no evaluator authentication, policy-version
+verification, invocation binding, durable replay protection, or cross-call
+deduplication. Callers that need those guarantees must establish them before
+calling this function. `observation_id` uniqueness is enforced only within one
+call. Callers must also provide canonical task taxonomy and immutable model
+revision identifiers when results must remain comparable; the aggregator only
+trims labels and does not resolve aliases or Unicode confusables.
+
+`evaluated_at` is the time the correctness label was established, not the model
+invocation time.
 
 ## Example
 
@@ -40,7 +52,7 @@ const report = aggregateTaskCalibration([
     observation_id: "eval-001",
     task_type: "code_review",
     source: { provider: "OpenAI", model: "gpt-5" },
-    evaluation_basis: "external_ground_truth",
+    evaluation_basis: "caller_attested_external_ground_truth",
     correct: true,
     confidence: 0.8,
     evaluated_at: "2026-07-13T00:00:00Z",
@@ -49,7 +61,7 @@ const report = aggregateTaskCalibration([
     observation_id: "eval-002",
     task_type: "code_review",
     source: { provider: "OpenAI", model: "gpt-5" },
-    evaluation_basis: "external_ground_truth",
+    evaluation_basis: "caller_attested_external_ground_truth",
     correct: false,
     confidence: 0.6,
     evaluated_at: "2026-07-13T00:01:00Z",
@@ -58,13 +70,19 @@ const report = aggregateTaskCalibration([
 ```
 
 The example group has `sample_count: 2`, `accuracy: 0.5`,
-`mean_confidence: 0.7`, `brier_score: 0.2`, and `calibration_gap: 0.2`. Metrics
-use:
+`mean_confidence: 0.7`, `brier_score: 0.2`, and `mean_calibration_bias: 0.2`.
+Metrics use:
 
 - accuracy: mean of the binary correctness outcomes
 - mean confidence: mean of the submitted confidence values
 - Brier score: mean of `(confidence - outcome)²`
-- calibration gap: `mean_confidence - accuracy` (positive is overconfidence)
+- mean calibration bias: `mean_confidence - accuracy` (positive is
+  overconfidence)
+
+`mean_calibration_bias` is a signed group-level average, not Expected
+Calibration Error (ECE) and not a bucketed reliability estimate. Opposing local
+overconfidence and underconfidence can cancel to zero; inspect it alongside the
+Brier score rather than treating zero as proof of calibration.
 
 Groups below `minimum_sample_count` have `sample_status: "insufficient"`. The
 minimum defaults to 20 and is only a reporting threshold; reaching it does not
