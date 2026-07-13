@@ -1,7 +1,9 @@
 import { assertEquals, assertThrows } from "@std/assert";
 import {
   aggregateTaskCalibration,
+  MAX_CALIBRATION_OBSERVATIONS,
   TaskCalibrationObservationSchema,
+  TaskCalibrationReportSchema,
 } from "../../router.ts";
 
 function observation(overrides: Record<string, unknown> = {}) {
@@ -192,9 +194,136 @@ Deno.test("task calibration output contains no routing or execution authority", 
 });
 
 Deno.test("task calibration validates minimum sample configuration", () => {
-  for (const minimum_sample_count of [0, -1, 1.5, Number.NaN]) {
+  for (
+    const minimum_sample_count of [
+      0,
+      -1,
+      1.5,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]
+  ) {
     assertThrows(() =>
       aggregateTaskCalibration([observation()], { minimum_sample_count })
     );
   }
+});
+
+Deno.test("task calibration rejects malformed offsets and invisible identifiers", () => {
+  for (
+    const candidate of [
+      observation({ evaluated_at: "2026-07-13T00:00:00+24:00" }),
+      observation({ evaluated_at: "2026-07-13T00:00:00+99:99" }),
+      observation({ evaluated_at: "2026-07-13T00:00:00+09:60" }),
+      observation({ observation_id: "\u200B" }),
+      observation({ observation_id: "obs\u200B-1" }),
+      observation({ observation_id: "obs\uFE0F-1" }),
+      observation({ observation_id: "obs\u034F-1" }),
+    ]
+  ) {
+    assertThrows(() => TaskCalibrationObservationSchema.parse(candidate));
+  }
+
+  TaskCalibrationObservationSchema.parse(
+    observation({ evaluated_at: "2026-07-13T00:00:00+23:59" }),
+  );
+  TaskCalibrationObservationSchema.parse(
+    observation({ evaluated_at: "2026-07-13T00:00:00Z" }),
+  );
+});
+
+Deno.test("task calibration normalizes identifiers before duplicate checks", () => {
+  assertThrows(() =>
+    aggregateTaskCalibration([
+      observation({ observation_id: "é" }),
+      observation({ observation_id: "e\u0301" }),
+    ])
+  );
+});
+
+Deno.test("task calibration output is invariant to observation order", () => {
+  const observations = [
+    observation({ observation_id: "large", correct: false, confidence: 1 }),
+    ...Array.from({ length: 9_999 }, (_, index) =>
+      observation({
+        observation_id: `small-${index}`,
+        correct: false,
+        confidence: 1e-14,
+      })),
+  ];
+
+  assertEquals(
+    aggregateTaskCalibration(observations, { minimum_sample_count: 1 }),
+    aggregateTaskCalibration([...observations].reverse(), {
+      minimum_sample_count: 1,
+    }),
+  );
+});
+
+Deno.test("task calibration group order uses deterministic code-unit ordering", () => {
+  const composed = observation({ observation_id: "1", task_type: "é" });
+  const decomposed = observation({
+    observation_id: "2",
+    task_type: "e\u0301",
+  });
+
+  assertEquals(
+    aggregateTaskCalibration([composed, decomposed], {
+      minimum_sample_count: 1,
+    }),
+    aggregateTaskCalibration([decomposed, composed], {
+      minimum_sample_count: 1,
+    }),
+  );
+});
+
+Deno.test("task calibration enforces bounded labels and batches", () => {
+  assertThrows(() =>
+    TaskCalibrationObservationSchema.parse(
+      observation({ task_type: "x".repeat(257) }),
+    )
+  );
+  assertThrows(() =>
+    aggregateTaskCalibration(
+      Array.from(
+        { length: MAX_CALIBRATION_OBSERVATIONS + 1 },
+        (_, index) => observation({ observation_id: `obs-${index}` }),
+      ),
+    )
+  );
+  assertThrows(() =>
+    aggregateTaskCalibration([], {
+      minimum_sample_count: MAX_CALIBRATION_OBSERVATIONS + 1,
+    })
+  );
+});
+
+Deno.test("task calibration report schema rejects contradictory groups", () => {
+  const valid = aggregateTaskCalibration([observation()], {
+    minimum_sample_count: 1,
+  });
+  const group = valid.groups[0];
+
+  for (
+    const invalidGroup of [
+      { ...group, sample_count: 0 },
+      { ...group, sample_status: "insufficient" },
+      { ...group, mean_calibration_bias: 0 },
+    ]
+  ) {
+    assertThrows(() =>
+      TaskCalibrationReportSchema.parse({
+        ...valid,
+        groups: [invalidGroup],
+      })
+    );
+  }
+
+  assertThrows(() =>
+    TaskCalibrationReportSchema.parse({
+      ...valid,
+      groups: [group, group],
+    })
+  );
 });

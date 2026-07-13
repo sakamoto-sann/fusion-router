@@ -29,15 +29,22 @@ uninterpretable. The schema enforces only that the number is finite and within
 The strict observation schema accepts only an ID, task type, provider/model
 source, the caller-attested-ground-truth literal, binary correctness,
 confidence, and evaluation timestamp. Prompts, responses, credentials, and
-freeform content are not schema fields and are rejected.
+freeform content are not schema fields and are rejected. Identifiers are
+trimmed, normalized to Unicode NFC, limited to 256 characters, and reject
+control or Unicode default-ignorable characters. Timestamps require a valid RFC
+3339 UTC offset.
 
 This pure aggregation API performs no evaluator authentication, policy-version
 verification, invocation binding, durable replay protection, or cross-call
 deduplication. Callers that need those guarantees must establish them before
 calling this function. `observation_id` uniqueness is enforced only within one
 call. Callers must also provide canonical task taxonomy and immutable model
-revision identifiers when results must remain comparable; the aggregator only
-trims labels and does not resolve aliases or Unicode confusables.
+revision identifiers when results must remain comparable; NFC normalization does
+not resolve aliases or Unicode confusables.
+
+One call accepts at most 10,000 observations. `minimum_sample_count` must be a
+positive integer no greater than that limit. Large datasets should be bounded
+and partitioned by the caller before they enter an untrusted request path.
 
 `evaluated_at` is the time the correctness label was established, not the model
 invocation time.
@@ -83,6 +90,11 @@ Metrics use:
 Calibration Error (ECE) and not a bucketed reliability estimate. Opposing local
 overconfidence and underconfidence can cancel to zero; inspect it alongside the
 Brier score rather than treating zero as proof of calibration.
+
+Metric accumulation and report ordering are deterministic for the same set of
+observations regardless of input order. The exported report schema also rejects
+zero-sized groups, sample-status/threshold contradictions, and a signed mean
+bias that does not equal `mean_confidence - accuracy`.
 
 Groups below `minimum_sample_count` have `sample_status: "insufficient"`. The
 minimum defaults to 20 and is only a reporting threshold; reaching it does not
