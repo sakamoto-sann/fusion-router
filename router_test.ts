@@ -8256,7 +8256,7 @@ Deno.test("create-quorum-router package files and metadata are release-safe", as
     "packages/create-quorum-router/package.json",
   );
   assertEquals(packageJson.name, "create-quorum-router");
-  assertEquals(packageJson.version, "0.1.14");
+  assertEquals(packageJson.version, "0.1.15");
   assertEquals(packageJson.license, "MIT");
   const bin = packageJson.bin as Record<string, unknown>;
   assertEquals(bin["create-quorum-router"], "bin/create-quorum-router.js");
@@ -8719,9 +8719,16 @@ Deno.test("publish workflow isolates OIDC and pins external actions", async () =
   assert(!/uses:\s+[^\s#]+@(v\d+|main|master)\b/.test(workflow));
   const verifySection = workflow.split("  publish-create-quorum-router:")[0];
   assert(!verifySection.includes(`${oidcPermission}: write`));
-  assertStringIncludes(
-    verifySection,
-    "templates/basic/src/calibration_route.ts",
+  const tarballFiles = JSON.parse(
+    await Deno.readTextFile(
+      "packages/create-quorum-router/tarball-files.json",
+    ),
+  ) as string[];
+  assert(tarballFiles.includes("templates/basic/src/calibration_route.ts"));
+  assert(
+    tarballFiles.includes(
+      "templates/basic/src/hierarchical_calibration_demo.ts",
+    ),
   );
   assertStringIncludes(
     verifySection,
@@ -8736,6 +8743,11 @@ Deno.test("publish workflow isolates OIDC and pins external actions", async () =
   assert(publishSection);
   assert(!publishSection.includes("npm install"));
   assertStringIncludes(publishSection, "Checkout exact verified release SHA");
+  assertStringIncludes(
+    workflow,
+    "JSON.parse(fs.readFileSync('tarball-files.json', 'utf8'))",
+  );
+  assert(!workflow.includes("const expected = ["));
 });
 
 Deno.test("create-quorum-router npm tarball contents are constrained", async () => {
@@ -8760,44 +8772,12 @@ Deno.test("create-quorum-router npm tarball contents are constrained", async () 
   const raw = JSON.parse(new TextDecoder().decode(pack.stdout)) as unknown;
   const packed = normalizeNpmPackResult(raw);
   const actual = packed.files.map((file) => file.path).sort();
-  assertEquals(actual, [
-    "LICENSE",
-    "README.md",
-    "bin/create-quorum-router.js",
-    "package.json",
-    "templates/basic/README.md",
-    "templates/basic/deno.json",
-    "templates/basic/gitignore",
-    "templates/basic/main.ts",
-    "templates/basic/out/.gitkeep",
-    "templates/basic/router.config.example.json",
-    "templates/basic/src/agent_chat.ts",
-    "templates/basic/src/auth.ts",
-    "templates/basic/src/auth_env_fallback.ts",
-    "templates/basic/src/auth_oauth.ts",
-    "templates/basic/src/auth_session.ts",
-    "templates/basic/src/best_route.ts",
-    "templates/basic/src/calibration.ts",
-    "templates/basic/src/calibration_demo.ts",
-    "templates/basic/src/calibration_route.ts",
-    "templates/basic/src/cli.ts",
-    "templates/basic/src/context.ts",
-    "templates/basic/src/cost_aware.ts",
-    "templates/basic/src/env.ts",
-    "templates/basic/src/fixture_smoke.ts",
-    "templates/basic/src/hierarchical_calibration_demo.ts",
-    "templates/basic/src/intake.ts",
-    "templates/basic/src/model_inventory.ts",
-    "templates/basic/src/provider_client.ts",
-    "templates/basic/src/provider_registry.ts",
-    "templates/basic/src/redact.ts",
-    "templates/basic/src/schema.ts",
-    "templates/basic/src/supabase.ts",
-    "templates/basic/src/trace.ts",
-    "templates/basic/src/wrapper_client.ts",
-    "templates/basic/supabase/migrations/20260701130000_workflow_access_audit.sql",
-    "templates/basic/supabase/migrations/20260712211500_workflow_access_audit_limits.sql",
-  ]);
+  const expected = JSON.parse(
+    await Deno.readTextFile(
+      "packages/create-quorum-router/tarball-files.json",
+    ),
+  ) as string[];
+  assertEquals(actual, expected);
   const hierarchyDemoFile = packed.files.find((file) =>
     file.path === "templates/basic/src/hierarchical_calibration_demo.ts"
   );
@@ -8948,7 +8928,7 @@ Deno.test("create-quorum-router docs state license and runtime boundaries", asyn
   assertStringIncludes(templateReadme, "No service-role runtime");
   assertStringIncludes(templateReadme, "BYO Supabase audit is disabled");
   assertStringIncludes(templateReadme, "deno task supabase:status");
-  assertStringIncludes(templateReadme, "v0.1.14");
+  assertStringIncludes(templateReadme, "v0.1.15");
   assertStringIncludes(templateReadme, "deno task calibration:demo");
   assertStringIncludes(templateReadme, "advisory-only");
   assertStringIncludes(templateReadme, "deno --version");
@@ -9020,7 +9000,7 @@ Deno.test("create-quorum-router CLI is static safe and functional", async () => 
     stderr: "piped",
   }).output();
   assertEquals(version.code, 0);
-  assertEquals(new TextDecoder().decode(version.stdout).trim(), "0.1.14");
+  assertEquals(new TextDecoder().decode(version.stdout).trim(), "0.1.15");
 
   const tempDir = await Deno.makeTempDir();
   try {
@@ -10083,9 +10063,9 @@ Deno.test("install helper is dry-run safe and avoids credential/runtime setup", 
   );
   assertStringIncludes(
     new TextDecoder().decode(defaultDryRun.stdout),
-    "ref:    v0.1.14",
+    "ref:    v0.1.15",
   );
-  assertStringIncludes(script, "--ref v0.1.14");
+  assertStringIncludes(script, "--ref v0.1.15");
 
   const tempDir = await Deno.makeTempDir();
   try {
