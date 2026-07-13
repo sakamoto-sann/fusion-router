@@ -5,7 +5,11 @@ import {
 import { runAgentChat } from "./agent_chat_runner.ts";
 import { invokeSelected } from "./best_route_runner.ts";
 import { runHermesStructuredFusion } from "./fusion_runner.ts";
-import { parseAuthMode, type ProviderResult } from "./schema.ts";
+import {
+  type ModelInventory,
+  parseAuthMode,
+  type ProviderResult,
+} from "./schema.ts";
 import { score } from "./trace.ts";
 import { readRouterEnv } from "./env.ts";
 
@@ -72,28 +76,42 @@ function selectedResult(results: ProviderResult[]): ProviderResult {
   return ranked[0].result;
 }
 
+export function healthPayload(
+  inventory: ModelInventory,
+): Record<string, unknown> {
+  return {
+    ok: true,
+    operation: "health",
+    auth_mode: inventory.auth_mode,
+    command_discovered_count: inventory.available_count,
+    command_executable_count: invokableEntries(inventory).length,
+    live_verified_count: 0,
+    available_count: 0,
+    invokable_count: 0,
+    legacy_readiness_fields: "deprecated_fail_closed",
+    providers: inventory.entries.map((entry) => ({
+      provider: entry.provider,
+      model: entry.model,
+      source: entry.source,
+      command_discovered: entry.available,
+      command_executable: entry.can_invoke,
+      live_auth_status: "not_checked",
+      available: false,
+      can_invoke: false,
+      blocked_reason: entry.blocked_reason,
+    })),
+    live_verification_note:
+      "Health performs no provider generation call; command discovery does not verify live authentication.",
+    external_model_call_sent: false,
+  };
+}
+
 async function main(): Promise<void> {
   const request = await readRequest();
   if (request.operation === "health") {
     const authMode = parseAuthMode(readRouterEnv("QUORUM_ROUTER_AUTH_MODE"));
     const inventory = await discoverInventoryWithModelListing(authMode);
-    const providers = inventory.entries.map((entry) => ({
-      provider: entry.provider,
-      model: entry.model,
-      source: entry.source,
-      available: entry.available,
-      can_invoke: entry.can_invoke,
-      blocked_reason: entry.blocked_reason,
-    }));
-    emit({
-      ok: true,
-      operation: "health",
-      auth_mode: authMode,
-      available_count: inventory.available_count,
-      invokable_count: invokableEntries(inventory).length,
-      providers,
-      external_model_call_sent: false,
-    });
+    emit(healthPayload(inventory));
     return;
   }
 

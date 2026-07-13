@@ -1,6 +1,6 @@
 name: quorum-router
-version: "0.3.0"
-description: "Route and run bounded Agent Chat through QuorumRouter's verified local OAuth/session providers"
+version: "0.4.0"
+description: "Route bounded tasks through discovered local provider commands; live authentication is verified only by execution"
 author: sakamoto-sann
 requires_env: []
 provides_tools:

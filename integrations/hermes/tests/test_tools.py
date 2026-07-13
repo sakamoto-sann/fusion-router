@@ -45,6 +45,16 @@ class QuorumRouterToolsTest(unittest.TestCase):
             self.assertEqual(json.loads(TOOLS.health({})), {"ok": True})
             invoke.assert_called_once_with({"operation": "health"})
 
+    def test_provider_command_allowlist_excludes_qwen(self):
+        paths = {
+            "codex": "/usr/local/bin/codex",
+            "qwen": "/usr/local/bin/qwen",
+        }
+        with mock.patch.object(TOOLS.shutil, "which", side_effect=paths.get):
+            commands = TOOLS._provider_commands()
+        self.assertIn("/usr/local/bin/codex", commands)
+        self.assertNotIn("/usr/local/bin/qwen", commands)
+
     def test_health_runs_without_provider_commands(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

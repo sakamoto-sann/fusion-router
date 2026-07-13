@@ -6,8 +6,9 @@ caching while allowing selective real-provider dogfood.
 
 ## Tools
 
-- `quorum_router_health` — local provider inventory; never sends a generation
-  call.
+- `quorum_router_health` — local provider command inventory; never sends a
+  generation call. It reports live authentication as `not_checked`; only a live
+  route can verify authentication.
 - `quorum_router_route` — `route_once` by default, optional `best_route`
   comparison.
 - `quorum_router_agent_chat` — bounded live dialogue between at least two
