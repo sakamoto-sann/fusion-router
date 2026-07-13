@@ -13,6 +13,7 @@ cd my-quorum-router-demo
 deno --version
 deno task smoke
 deno task calibration:demo
+deno task calibration:hierarchy-demo
 deno task intake
 deno task supabase:status
 ```
@@ -26,13 +27,17 @@ from an immutable Git tag through GitHub Actions OIDC Trusted Publishing.
 API.
 
 `deno task calibration:demo` runs the bundled flat calibration-by-task API
-against deterministic local observations. For narrower diagnostics, generated
-projects also export `aggregateHierarchicalTaskCalibration()` and
+against deterministic local observations. `deno task calibration:hierarchy-demo`
+runs three deterministic scenarios that select at the prompt-pattern level, then
+fall back to task subtype, then task type as narrower sample buckets become
+insufficient. Generated projects also export
+`aggregateHierarchicalTaskCalibration()` and
 `resolveHierarchicalTaskCalibration()` with
 `prompt_pattern → task_subtype → task_type` sample-count fallback. Reports are
 advisory-only and are not connected to routing weights, provider eligibility, or
-execution. The command does not call provider APIs; on a new Deno installation,
-its first run resolves the pinned Zod dependency before execution.
+execution. Both demos are local-only; the hierarchy demo does not call provider
+APIs. On a new Deno installation, the first run resolves the pinned Zod
+dependency before execution.
 
 `deno task intake` is the first real setup command. It detects local provider
 wrappers, checks OAuth/session status, runs safe list-only model inventory where
@@ -43,6 +48,7 @@ the next command.
 deno task check
 deno task smoke
 deno task calibration:demo
+deno task calibration:hierarchy-demo
 deno task intake
 deno task auth:status
 deno task auth:login
