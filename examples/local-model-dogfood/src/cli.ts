@@ -68,7 +68,9 @@ async function main(): Promise<void> {
     console.log("Step 2 — Recommended next action");
     if (invokableEntries(inventory).length === 0) {
       console.log("QuorumRouter intake blocked");
-      console.log("No usable OAuth/session/wrapper provider is available yet.");
+      console.log(
+        "No invokable OAuth/session/wrapper provider was discovered.",
+      );
       console.log("Next:");
       console.log("  deno task auth:login");
     } else {
@@ -125,6 +127,7 @@ async function main(): Promise<void> {
       `available_invokable_models: ${invokableEntries(inventory).length}`,
     );
     console.log("external_model_call_sent: false");
+    console.log("live_provider_authentication_verified: false");
     console.log(`trace: ${path}`);
     return;
   }
@@ -151,7 +154,7 @@ async function main(): Promise<void> {
   if (command === "agent-chat") {
     const { tracePath } = await runAgentChat(prompt);
     console.log("QuorumRouter local model dogfood");
-    console.log("mode: agent_chat experimental explicit opt-in");
+    console.log("mode: agent_chat explicit opt-in");
     console.log(`trace: ${tracePath}`);
     return;
   }

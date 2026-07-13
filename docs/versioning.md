@@ -1,53 +1,40 @@
-# Versioning and public preview policy
+# Versioning and public release policy
 
-External launch label: **QuorumRouter v0.1 public preview**.
-
-## What version numbers mean
-
-Version numbers identify technical artifacts, not product completeness. The
-`v0.1.x` line is the pre-1.0 public engineering release line for repository
-tags, release notes, npm scaffold packaging, and compatibility patches.
+QuorumRouter is a public MIT-licensed product. Version numbers identify shipped
+technical artifacts; they are not labels for product incompleteness.
 
 ## Current public artifacts
 
-- `v0.1.9` is the current public preview release line target for GitHub release
-  tags, install-helper docs, and generated scaffold packaging.
-- `create-quorum-router@0.1.9` is the current NPX package target.
-- `create-quorum-router@latest` should resolve to `0.1.9` after release
-  approval.
-- `0.1.9` includes deterministic advisory task calibration in the core and
-  generated scaffold while preserving fail-closed routing and MIT licensing.
+- GitHub Release line: `v0.1.10`
+- npm package: `create-quorum-router@0.1.10`
+- npm `latest`: `0.1.10`
 
-## Public quickstart
+Public quickstart:
 
 ```bash
-npx --yes create-quorum-router@latest my-quorum-router-demo
-cd my-quorum-router-demo
+npx --yes create-quorum-router@latest my-quorum-router
+cd my-quorum-router
 deno task smoke
 ```
 
-Fixed package version:
+## Version discipline
 
-```bash
-npx --yes create-quorum-router@0.1.9 my-quorum-router-demo
-cd my-quorum-router-demo
-deno task smoke
-```
+- Use SemVer for every immutable GitHub and npm artifact.
+- Publish fixes as a new version; never rewrite an npm tarball or move a tag.
+- Keep the source installer default, package manifests, release notes, GitHub
+  Release, npm `latest`, and generated scaffold on the same release version.
+- Historical release notes may retain the version they documented, but any
+  registry value described as current must be labeled with its original date.
 
-## Release discipline
+## Runtime status language
 
-- Do not bump the npm package version without explicit instruction.
-- Do not create a new GitHub tag or release without explicit instruction.
-- Future RCs should use an explicit prerelease and npm dist-tag policy before
-  any publish step.
-
-## License and runtime boundaries
-
-QuorumRouter is **MIT-licensed open source**. Commercial and production use are
-permitted under the MIT License.
-
-- `direct` is the production-ready best-answer routing path.
-- `agent_chat` is experimental explicit opt-in only.
-- No production autonomous runtime.
-- No live Supabase Agent Bus runtime writes.
-- No service-role runtime.
+- Direct mode is the production fail-closed routing path.
+- AgentRuntime is production-capable when configured with a real SafeLoop
+  execution authority and bounded operator approval flow.
+- Conversation-only Agent Chat without execution authority remains explicit
+  opt-in and is not production execution.
+- Calibration reports are externally grounded diagnostics; they must not be
+  presented as automatic routing authority unless an explicit, tested policy is
+  added.
+- QuorumRouter does not provide a hosted central runtime or service-role data
+  plane.

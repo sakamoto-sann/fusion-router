@@ -70,7 +70,7 @@ async function writeArtifacts() {
   const trace = {
     mode: "agent_chat",
     explicit_opt_in: true,
-    status: "experimental",
+    status: "explicit_opt_in_fixture",
     demo: "Mini Shogi Opening Excerpt",
     game,
     fixture_agents: ["Grok", "GLM"],
@@ -81,9 +81,9 @@ async function writeArtifacts() {
     deterministic_fixture_note:
       "Grok and GLM are fixture labels only. No external Grok/GLM model/API call was made.",
     runtime_boundaries: [
-      "agent_chat is experimental explicit opt-in only",
+      "agent_chat fixture is explicit opt-in and has no mutation authority",
       "not Best Route mode",
-      "not a production autonomous runtime",
+      "fixture performs no external execution",
       "no live Supabase Agent Bus runtime writes",
       "no service-role runtime",
     ],
@@ -100,21 +100,21 @@ async function writeArtifacts() {
       "# Agent Chat Shogi excerpt summary",
       "",
       "- Mode: `agent_chat`",
-      "- Status: experimental explicit opt-in",
+      "- Status: explicit opt-in fixture",
       "- Fixture agents: `Grok` vs `GLM`",
       "- Shown excerpt: six opening half-moves",
       "- Fadeout: match continues after the opening excerpt",
       "- External model/API calls: none",
       "- Fixture: deterministic and repeatable",
-      "- Boundary: not Best Route mode and not a production autonomous runtime",
+      "- Boundary: not Best Route mode and no external execution",
       "",
     ].join("\n"),
   );
 }
 
-console.log("QuorumRouter v0.1 public preview");
+console.log("QuorumRouter v0.1 public release");
 console.log("Mode: agent_chat");
-console.log("Status: experimental explicit opt-in");
+console.log("Status: explicit opt-in fixture");
 console.log("Demo: Mini Shogi Opening Excerpt");
 console.log("Fixture agents: Grok vs GLM");
 console.log("");

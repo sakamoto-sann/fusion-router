@@ -134,6 +134,7 @@ jobs:
             'templates/basic/src/best_route.ts',
             'templates/basic/src/calibration.ts',
             'templates/basic/src/calibration_demo.ts',
+            'templates/basic/src/calibration_route.ts',
             'templates/basic/src/cli.ts',
             'templates/basic/src/context.ts',
             'templates/basic/src/cost_aware.ts',
@@ -167,6 +168,24 @@ jobs:
           deno task test
           deno task doctor
           deno task smoke:v0.1
+
+      - name: Checkout pinned SafeLoop execution authority
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: clawdia-saka/safeloop
+          ref: 7fd558459610dbc5c6f1a467a30e0a939410308d
+          path: .safeloop-source
+
+      - name: Install pinned SafeLoop execution authority
+        run: |
+          python3 -m pip install --disable-pip-version-check --user uv==0.7.21
+          "$HOME/.local/bin/uv" sync --directory .safeloop-source --extra dev
+
+      - name: Real SafeLoop production execution E2E for release SHA
+        env:
+          SAFELOOP_E2E_BINARY: ${{ github.workspace }}/.safeloop-source/.venv/bin/safeloop
+          SAFELOOP_E2E_REQUIRED: "1"
+        run: deno test -A --filter='real SafeLoop execute-request E2E' router_test.ts
 
       - name: Record verified release SHA
         id: release-sha

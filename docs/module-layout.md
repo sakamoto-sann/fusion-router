@@ -133,8 +133,9 @@ The split is intended to be behavior-preserving:
 - Adaptive Direct is opt-in; without `directRoutingPolicy`, direct mode still
   invokes every configured adapter as before
 - fallback remains policy classification, not silent fallback success
-- calibration reports remain advisory-only and are not consumed by routing,
-  ranking, quorum, or execution paths
+- caller-attested calibration evidence can be aggregated before direct provider
+  invocation and attached to the Decision Report, but remains advisory-only and
+  is not consumed by ranking, provider selection, quorum, or execution policy
 
 ## Advisory calibration boundary
 
@@ -146,8 +147,12 @@ bias, and sample-count status.
 The module validates structure and per-call observation ID uniqueness. It does
 not authenticate evaluators, bind observations to invocations, deduplicate
 across calls, persist observations, or normalize model aliases. Those guarantees
-belong upstream. No routing or execution module imports or consumes calibration
-reports.
+belong upstream. The direct routing path may aggregate caller-supplied evidence
+before invoking providers and attach the resulting report to its Decision
+Report; the report never grants routing or execution authority. Generated
+`route:once` and `best-route` commands provide the same optional attach-only
+trace path. Agent Chat, cost-aware selection, and model-catalog ranking do not
+consume calibration reports.
 
 ## Adaptive Direct policy skeleton
 

@@ -1,9 +1,9 @@
 # Expected output — Agent Chat Shogi Excerpt
 
 ```text
-QuorumRouter v0.1 public preview
+QuorumRouter v0.1 public release
 Mode: agent_chat
-Status: experimental explicit opt-in
+Status: explicit opt-in fixture
 Demo: Mini Shogi Opening Excerpt
 Fixture agents: Grok vs GLM
 
@@ -47,7 +47,7 @@ Summary: ../../out/examples/agent-chat-game-summary.md
 Validation notes:
 
 - Output contains `Mode: agent_chat`.
-- Output contains `experimental explicit opt-in`.
+- Output contains `explicit opt-in fixture`.
 - Output contains `Fixture agents: Grok vs GLM`.
 - Output contains a partial shogi match, not a complete game.
 - Output contains `1. Grok:`, `1... GLM:`, and `3... GLM:`.

@@ -1,6 +1,6 @@
 # Best Route Shogi demo
 
-This demo is **GIF 1** for QuorumRouter v0.1 public preview.
+This demo is **GIF 1** for QuorumRouter v0.1 public release.
 
 It shows **Best Route mode** as a production-ready best-answer routing path:
 QuorumRouter compares deterministic candidate lines for a small shogi opening
@@ -35,7 +35,7 @@ deno task demo
 - No multi-role conversation.
 - No `agent_chat` runtime.
 - No live Grok/GLM API call.
-- No production autonomous runtime claim.
+- No AgentRuntime or SafeLoop execution is exercised by this fixture.
 - No live Supabase Agent Bus runtime writes.
 - No service-role runtime.
 

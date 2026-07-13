@@ -100,18 +100,6 @@ export const LOCAL_PROVIDER_SPECS: ProviderSpec[] = [
       "Devin CLI does not expose a models subcommand in this environment.",
     notes: ["Uses existing Devin CLI session."],
   },
-  {
-    provider: "Alibaba",
-    model: "qwen-cli",
-    model_id: "alibaba/qwen-cli",
-    auth_mode: "session",
-    source: "local_cli",
-    command: "qwen",
-    args_template: ["-p", "__PROMPT__"],
-    list_blocked_reason:
-      "Qwen CLI model listing path is stdin/API-key dependent in this environment.",
-    notes: ["Uses existing local Qwen CLI session."],
-  },
 ];
 
 export function envFallbackEntry(configured: boolean): ModelInventoryEntry {

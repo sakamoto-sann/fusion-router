@@ -1,7 +1,7 @@
 # Expected output — Best Route Shogi Excerpt
 
 ```text
-QuorumRouter v0.1 public preview
+QuorumRouter v0.1 public release
 Mode: best_route
 Demo: Mini Shogi Opening Excerpt
 Fixture agents: Grok vs GLM

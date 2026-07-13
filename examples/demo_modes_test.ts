@@ -40,7 +40,7 @@ Deno.test("Best Route shogi demo stays route-comparison only", async () => {
 Deno.test("Agent Chat shogi demo stays explicit opt-in excerpt only", async () => {
   const stdout = await runDemo("examples/agent-chat-game");
   assertStringIncludes(stdout, "Mode: agent_chat");
-  assertStringIncludes(stdout, "experimental explicit opt-in");
+  assertStringIncludes(stdout, "explicit opt-in fixture");
   assertStringIncludes(stdout, "Mini Shogi Opening Excerpt");
   assertStringIncludes(stdout, "Fixture agents: Grok vs GLM");
   assertStringIncludes(stdout, "1. Grok:");
@@ -56,7 +56,7 @@ Deno.test("Agent Chat shogi demo stays explicit opt-in excerpt only", async () =
   const trace = JSON.parse(traceText);
   assertEquals(trace.mode, "agent_chat");
   assertEquals(trace.explicit_opt_in, true);
-  assertEquals(trace.status, "experimental");
+  assertEquals(trace.status, "explicit_opt_in_fixture");
   assertEquals(trace.fixture_agents, ["Grok", "GLM"]);
   assertEquals(trace.external_model_call, false);
   assertEquals(trace.external_api_call, false);

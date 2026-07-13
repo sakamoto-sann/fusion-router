@@ -18,8 +18,8 @@
   },
   "runtime_boundaries": {
     "best_route_direct": "production-ready best-answer routing",
-    "agent_chat": "experimental explicit opt-in only",
-    "production_autonomous_runtime": false,
+    "agent_chat": "explicit opt-in conversation mode; no mutation authority",
+    "safeloop_execution": "production-capable only with explicit execution authority and approval",
     "live_supabase_agent_bus_writes": false,
     "service_role_runtime": false
   }

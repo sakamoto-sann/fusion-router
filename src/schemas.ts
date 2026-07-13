@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TaskCalibrationReportSchema } from "./calibration/calibration.ts";
 import { ModelUsageSchema } from "./prompt-cache.ts";
 
 export const AuthModeSchema = z.enum(["apiKey", "oauth", "session"]);
@@ -111,6 +112,7 @@ export const DecisionReportSchema = z.object({
   execution: DecisionExecutionSchema,
   validated_sources: z.array(z.string().min(1)),
   failures: z.array(DecisionFailureSchema),
+  calibration: TaskCalibrationReportSchema.optional(),
 }).superRefine((value, context) => {
   if (value.quorum.validated_outputs !== value.execution.successful_adapters) {
     context.addIssue({

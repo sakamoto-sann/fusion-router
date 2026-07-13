@@ -12,6 +12,14 @@ import { parseAuthMode } from "./src/schema.ts";
 import { redact, redactionOk } from "./src/redact.ts";
 import { buildTrace, writeTrace } from "./src/trace.ts";
 import { buildWrapperArgs } from "./src/wrapper_client.ts";
+import { LOCAL_PROVIDER_SPECS } from "./src/provider_registry.ts";
+
+Deno.test("provider registry excludes Qwen until a non-secret session path exists", () => {
+  assertEquals(
+    LOCAL_PROVIDER_SPECS.some((spec) => spec.model_id === "alibaba/qwen-cli"),
+    false,
+  );
+});
 
 function setEnvForTest(
   values: Record<string, string | undefined>,
@@ -380,7 +388,7 @@ Deno.test("local model dogfood trace schema stays sanitized", async () => {
   assertEquals(redactionOk(trace), true);
   assertStringIncludes(
     trace.boundaries.join("\n"),
-    "agent_chat remains experimental explicit opt-in only",
+    "agent_chat remains explicit opt-in and separate from direct routing",
   );
 });
 
@@ -435,6 +443,6 @@ Deno.test("local model dogfood docs preserve launch boundaries", async () => {
   assertStringIncludes(readme, "generic OpenAI-compatible env fallback");
   assertStringIncludes(
     readme,
-    "agent_chat` remains experimental explicit opt-in only",
+    "agent_chat` remains explicit opt-in and has no mutation authority",
   );
 });

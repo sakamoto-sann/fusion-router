@@ -113,7 +113,7 @@ Live multi-model Agent Chat is a separate explicit opt-in command:
 
 ```bash
 RUN_EXTERNAL_MODEL_DOGFOOD=1 \
-RUN_EXPERIMENTAL_AGENT_CHAT=1 \
+RUN_AGENT_CHAT=1 \
 QUORUM_ROUTER_AGENT_CHAT_MAX_TURNS=6 \
   deno task agent-chat --prompt "Debate the safest migration plan"
 ```

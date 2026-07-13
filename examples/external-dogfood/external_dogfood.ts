@@ -72,8 +72,8 @@ function boundaries(matrix: boolean): string[] {
     "external dogfood is not run in default CI",
     "provider credentials are read only from local env and are never written to trace",
     "Best Route/direct remains production-ready best-answer routing",
-    "agent_chat remains experimental explicit opt-in only",
-    "no production autonomous runtime",
+    "agent_chat is explicit opt-in and has no mutation authority",
+    "SafeLoop-backed mutation requires separate execution configuration and approval",
     "no live Supabase Agent Bus runtime writes",
     "no service-role runtime",
   ];

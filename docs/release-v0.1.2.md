@@ -43,23 +43,22 @@ posture documentation, and developer-adoption bootstrap paths.
 
 ## npm scaffold follow-up
 
-v0.1.2 is the GitHub security hardening release. The live npm scaffold package
-is `create-quorum-router@0.1.3`, and the `latest` dist-tag resolves to `0.1.3`.
-`0.1.3` is an engineering patch for NPX scaffold / generated-demo compatibility,
-not a separate product milestone. Public quickstarts should point to
-`create-quorum-router@latest` or the fixed `create-quorum-router@0.1.3` package.
+This is a historical v0.1.2 release note. At publication time, the npm scaffold
+had already advanced to `create-quorum-router@0.1.3` for generated-demo
+compatibility. It does not describe the current npm `latest` dist-tag; current
+quickstarts use `create-quorum-router@latest`.
 
 ## Runtime scope
 
 No routing behavior changes.
 
-- `direct` remains the production-ready best-answer routing path.
-- `agent_chat` remains experimental explicit opt-in only.
-- AgentRuntime remains experimental and in-process only.
+- `direct` was the production-ready best-answer routing path in this release.
+- `agent_chat` was conversation-only and explicit opt-in.
+- AgentRuntime was in-process only in this historical release.
 
 ## Not included
 
-- No production autonomous runtime.
+- No SafeLoop-backed execution slice in v0.1.2.
 - No live Supabase Agent Bus runtime client/writes.
 - No Supabase Realtime subscriber.
 - No worker process spawning.
